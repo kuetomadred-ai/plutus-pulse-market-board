@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep `/` as the canonical trading screen and redirect the legacy `/index` preview URL to it so imported preview links remain valid.

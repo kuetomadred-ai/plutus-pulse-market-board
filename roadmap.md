@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Fix /index preview entry and open charts/prices directly in a safe demo; verify mobile interactions.
+
 - [x] Match video: position action strip, SL/TP draft dragging, explicit modification sheet (mobile demo flow verified)
 - [x] Chart drawing controls: smooth select/move/delete, MT5-style
 - [x] Chart settings, radial dial (double-tap), indicators, objects
