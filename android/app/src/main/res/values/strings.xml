@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PLUTUS</string>
+    <string name="title_activity_main">PLUTUS</string>
+    <string name="package_name">com.plutus.trading</string>
+    <string name="custom_url_scheme">com.plutus.trading</string>
+</resources>

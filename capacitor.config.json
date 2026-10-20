@@ -1,0 +1,10 @@
+{
+  "appId": "com.plutus.trading",
+  "appName": "PLUTUS",
+  "webDir": "dist",
+  "backgroundColor": "#080C16",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#080C16"
+  }
+}
