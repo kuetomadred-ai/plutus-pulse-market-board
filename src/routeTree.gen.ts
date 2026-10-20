@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as IndexRouteImport } from './routes/index_'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as ApiPublicPaymentsInvoiceRouteImport } from './routes/api/public/payments/invoice'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -19,9 +19,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/index_',
-  path: '/index',
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPaymentsInvoiceRoute =
@@ -39,47 +39,41 @@ const ApiPublicPaymentsWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/index': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/index': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/index_': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/index'
-    | '/api/public/payments/invoice'
-    | '/api/public/payments/webhook'
+    '/' | '/$' | '/api/public/payments/invoice' | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/index'
-    | '/api/public/payments/invoice'
-    | '/api/public/payments/webhook'
+    '/' | '/$' | '/api/public/payments/invoice' | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
-    | '/index_'
+    | '/$'
     | '/api/public/payments/invoice'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
   ApiPublicPaymentsInvoiceRoute: typeof ApiPublicPaymentsInvoiceRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -93,11 +87,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/index_': {
-      id: '/index_'
-      path: '/index'
-      fullPath: '/index'
-      preLoaderRoute: typeof IndexRouteImport
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/payments/invoice': {
@@ -119,7 +113,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
   ApiPublicPaymentsInvoiceRoute: ApiPublicPaymentsInvoiceRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
