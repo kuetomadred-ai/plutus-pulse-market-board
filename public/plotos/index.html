@@ -8,10 +8,10 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" href="./assets/mt5-app-icon.png">
 <link rel="apple-touch-icon" href="./assets/mt5-app-icon.png">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <script src="./engine-config.js"></script>
 <script src="./engine-client.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script src="./vendor/signalr.min.js"></script>
 <script>
 /* Biquote is the sole market-data provider for PLUTUS. */
 (function (global) {
@@ -1606,7 +1606,7 @@ var libPromise=null;
 function ensureChartLib(){
  if(window.LightweightCharts)return Promise.resolve(true);
  if(!libPromise)libPromise=new Promise(function(res){
-  var urls=[
+  var urls=['./vendor/lightweight-charts.js',
    'https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js',
    'https://cdnjs.cloudflare.com/ajax/libs/lightweight-charts/4.1.3/lightweight-charts.standalone.production.js',
    'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js'];
