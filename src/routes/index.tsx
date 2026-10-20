@@ -1,24 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "PLUTUS — منصة تداول للموبايل" },
+      {
+        name: "description",
+        content: "منصة PLUTUS للتداول بأسعار حية ورسوم شموع وصفقات بتصميم MT5 للموبايل.",
+      },
+      { property: "og:title", content: "PLUTUS — منصة تداول" },
+      { property: "og:description", content: "أسعار حية ورسوم بيانية وإدارة صفقات بتصميم MT5." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: App,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function App() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <iframe
+      src="/plotos/index.html"
+      title="PLUTUS"
+      className="fixed inset-0 h-[100dvh] w-full border-0 bg-background"
+      allow="clipboard-write; fullscreen"
+    />
   );
 }

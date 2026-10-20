@@ -1,0 +1,24 @@
+{
+  "name": "PLUTUS",
+  "short_name": "PLUTUS",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "Paper-trading simulator with an MT5-style interface.",
+  "icons": [
+    {
+      "src": "assets/mt5-app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/mt5-app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
