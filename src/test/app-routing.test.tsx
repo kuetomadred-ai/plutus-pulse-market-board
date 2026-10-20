@@ -24,7 +24,7 @@ describe("App routing", () => {
     expect(typeof beforeLoad).toBe("function");
     if (typeof beforeLoad !== "function") throw new Error("Legacy redirect is missing");
     try {
-      await (beforeLoad as (context: { params: { _splat: string } }) => unknown)({ params: { _splat: "index" } });
+      await (beforeLoad as unknown as (context: { params: { _splat: string } }) => unknown)({ params: { _splat: "index" } });
       throw new Error("Expected redirect");
     } catch (error) {
       expect(error).toMatchObject({ options: { to: "/", replace: true } });

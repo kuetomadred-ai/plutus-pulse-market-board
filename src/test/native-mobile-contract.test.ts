@@ -40,7 +40,7 @@ describe("Capacitor security and auth links", () => {
     expect(app).toContain("<title>PLUTUS</title>");
     expect(androidStrings).toContain('<string name="app_name">PLUTUS</string>');
     expect(iosInfo).toMatch(/CFBundleDisplayName<\/key>\s*<string>PLUTUS<\/string>/);
-    expect(rootRoute).toContain('src="/plotos/index.html"');
+    expect(rootRoute).toContain('src="/plotos/index.html?demo=1"');
     expect(app).toContain("window.location.origin+'/plotos/'");
   });
 });

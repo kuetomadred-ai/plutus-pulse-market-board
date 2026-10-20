@@ -1193,7 +1193,7 @@ function enterDemo(){
  if(!u){u={id:id,email:'demo@plotos.local',name:'Demo Trader',role:'TRADER',status:'ACTIVE',createdAt:Date.now(),refCode:'PFDEMO01',kyc:'NONE',termsAt:Date.now(),_u:Date.now()};DB.users.push(u)}
  var a=DB.accounts.find(function(x){return x.userId===id&&x.kind==='PAPER'});
  if(!a){a=mkAccount(id,'t50','PAPER');a.login=90001;DB.accounts.push(a)}
- DB.activeAcc[id]=a.id;DB.session=id;CLOUD.authRole='TRADER';termSym=SYMBOLS.XAUUSD?'XAUUSD':(SYMBOLS.XAUUSD_HKN?'XAUUSD_HKN':(SYIDS[0]||termSym));chart.sym=termSym;chart.tf='1m';DB.settings.lastSym=termSym;DB.settings.lastTf='1m';DB.settings.ind.rsi=false;save();audit('demo','Demo Login','account '+a.login,'Local paper account');enterApp(false)
+ DB.activeAcc[id]=a.id;DB.session=id;CLOUD.authRole='TRADER';termSym=SYMBOLS.XAUUSD?'XAUUSD':(SYMBOLS.XAUUSD_HKN?'XAUUSD_HKN':(SYIDS[0]||'XAUUSD'));chart.sym=termSym;chart.tf='1m';DB.settings.lastSym=termSym;DB.settings.lastTf='1m';DB.settings.ind.rsi=false;save();audit('demo','Demo Login','account '+a.login,'Local paper account');enterApp(false)
 }
 function doLogout(){var u=user();var done=!DEMO_MODE&&CLOUD.ok?CLOUD.sb.auth.signOut():Promise.resolve();done.catch(function(){}).then(function(){if(u)audit(u.email,'Logout','user',DEMO_MODE?'Local demo':'Supabase Auth');DB.session=null;DEMO_MODE=false;save();closeDrawer();renderAuth();if(PREVIEW_DEMO&&!CLOUD.ok)cloudInit().catch(function(e){CLOUD.lastError=e;renderAuth('Sign in is unavailable. You can still open the demo.')})})}
 window.doLogout=doLogout;
