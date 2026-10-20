@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
 function App() {
   return (
     <iframe
-      src="/plotos/index.html"
+      src="/plotos/index.html?demo=1"
       title="PLUTUS"
       className="fixed inset-0 h-[100dvh] w-full border-0 bg-background"
       allow="clipboard-write; fullscreen"

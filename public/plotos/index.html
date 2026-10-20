@@ -1195,7 +1195,7 @@ function enterDemo(){
  if(!a){a=mkAccount(id,'t50','PAPER');a.login=90001;DB.accounts.push(a)}
  DB.activeAcc[id]=a.id;DB.session=id;CLOUD.authRole='TRADER';termSym=SYMBOLS.XAUUSD?'XAUUSD':(SYMBOLS.XAUUSD_HKN?'XAUUSD_HKN':(SYIDS[0]||termSym));chart.sym=termSym;chart.tf='1m';DB.settings.lastSym=termSym;DB.settings.lastTf='1m';DB.settings.ind.rsi=false;save();audit('demo','Demo Login','account '+a.login,'Local paper account');enterApp(false)
 }
-function doLogout(){var u=user();var done=!DEMO_MODE&&CLOUD.ok?CLOUD.sb.auth.signOut():Promise.resolve();done.catch(function(){}).then(function(){if(u)audit(u.email,'Logout','user',DEMO_MODE?'Local demo':'Supabase Auth');DB.session=null;DEMO_MODE=false;save();closeDrawer();renderAuth()})}
+function doLogout(){var u=user();var done=!DEMO_MODE&&CLOUD.ok?CLOUD.sb.auth.signOut():Promise.resolve();done.catch(function(){}).then(function(){if(u)audit(u.email,'Logout','user',DEMO_MODE?'Local demo':'Supabase Auth');DB.session=null;DEMO_MODE=false;save();closeDrawer();renderAuth();if(PREVIEW_DEMO&&!CLOUD.ok)cloudInit().catch(function(e){CLOUD.lastError=e;renderAuth('Sign in is unavailable. You can still open the demo.')})})}
 window.doLogout=doLogout;
 function isStaff(u){var r=CLOUD.authRole;return!!(u&&r&&(r==='ADMIN'||r==='RISK'||r==='FINANCE'||r==='SUPPORT'))}
 function canApprovePlanRequests(){return!!user()&&!DEMO_MODE&&(CLOUD.authRole==='ADMIN'||CLOUD.authRole==='FINANCE')}
@@ -2465,6 +2465,7 @@ function tfModal(){
 /* shell — Quotes → Charts → Trade → History → Messages; advanced tools stay in drawer */
 var PORTAL_ADMIN=false,AUTH_NOTICE='',AUTH_PENDING_EMAIL='',DEMO_MODE=false;
 try{PORTAL_ADMIN=new URLSearchParams(location.search).get('portal')==='admin'}catch(e){}
+var PREVIEW_DEMO=!PORTAL_ADMIN&&!window.PLUTUS_NATIVE&&new URLSearchParams(location.search).get('demo')==='1';
 var view='quotes',termSym='EURUSD',histF='all',histLimit=50,adminTab='overview',lastLots=0.10,histTab='deals';
 var NAV=[['quotes','Quotes','M5 20v-7M10 20V5M15 20v-10M20 20V8'],
  ['charts','Charts','M7 5v3M7 14v5M4.5 8h5v6h-5zM17 3v4M17 12v9M14.5 7h5v5h-5z'],
@@ -3944,6 +3945,8 @@ function pipHTML(v,d){if(!(v>0))return'—';var s=pxf(v,d),n=d>=3?2:1;
  if(DB.settings.lastSym&&SYMBOLS[DB.settings.lastSym])termSym=DB.settings.lastSym;
  if(DB.settings.lastTf&&TFSEC[DB.settings.lastTf])chart.tf=DB.settings.lastTf;
  startFeeds();
+ if(PREVIEW_DEMO){enterDemo()}
+ else{
  cloudInit().then(function(){return seed()}).then(function(){
   var nativeUrl=pendingNativeAuthUrl||window.__PLUTUS_NATIVE_URL;
   if(nativeUrl){pendingNativeAuthUrl=null;return finishNativeAuthLink(nativeUrl)}
@@ -3956,6 +3959,7 @@ function pipHTML(v,d){if(!(v>0))return'—';var s=pxf(v,d),n=d>=3?2:1;
   showErr(new Error('Cloud database unavailable. Local trading data is disabled until reconnection.'));
   renderAuth()
  });
+ }
  ensureChartLib();
  (function(){var sx,sy,st,n=0;document.addEventListener('pointerdown',function(e){var el=document.getElementById('chartEl');if(!el||!el.contains(e.target)){st=0;return}n++;sx=e.clientX;sy=e.clientY;st=Date.now()},true);document.addEventListener('pointerup',function(e){var go=st&&Date.now()-st<260&&Math.abs(e.clientX-sx)<8&&Math.abs(e.clientY-sy)<8;st=0;if(go){var tn=Date.now();if(!(window._lt&&tn-window._lt<340&&Math.abs(e.clientX-window._lx)<24&&Math.abs(e.clientY-window._ly)<24)){window._lt=tn;window._lx=e.clientX;window._ly=e.clientY;return}window._lt=0}if(!go||chart.dtOn||chart.crosshair)return;var C=DB.settings.chart||{};if(C.radialTap===false)return;if(document.querySelector('#ovl')&&getComputedStyle(document.querySelector('#ovl')).display!=='none')return;setTimeout(function(){if(DSEL&&DSEL.idx>=0)return;tfModal()},30)},true)})();
 })();

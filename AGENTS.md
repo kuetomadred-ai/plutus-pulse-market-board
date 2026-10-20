@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Keep `/` as the canonical trading screen and redirect the legacy `/index` preview URL to it so imported preview links remain valid.
+- Preserve the imported static terminal in its same-origin iframe; the explicit demo query opens its existing paper account without waiting for external authentication, while native and staff entry retain authentication.
