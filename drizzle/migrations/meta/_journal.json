@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792596731730,
+      "tag": "0000_plutus_engine_and_challenge_rules",
+      "breakpoints": true
+    }
+  ]
+}
