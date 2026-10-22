@@ -11,3 +11,6 @@
 
 - Keep `/` as the canonical trading screen and redirect the legacy `/index` preview URL to it so imported preview links remain valid.
 - Preserve the imported static terminal in its same-origin iframe; the explicit demo query opens its existing paper account without waiting for external authentication, while native and staff entry retain authentication.
+- The current Cloud Drizzle migration set is authoritative for the engine; historical Supabase SQL is reference-only, preventing duplicate schema paths.
+- Route terminal engine calls through authenticated same-origin TanStack server handlers; derive identity from verified tokens and keep privileged RPC execution server-only.
+- Run quote monitoring through the managed cron-authenticated callback, never through browser timers as the independent source of risk enforcement.

@@ -8,6 +8,13 @@
       "when": 1792596731730,
       "tag": "0000_plutus_engine_and_challenge_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792650778058,
+      "tag": "0001_profiles_and_engine_tick_risk",
+      "breakpoints": true
     }
   ]
 }

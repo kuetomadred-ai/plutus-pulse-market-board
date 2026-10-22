@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
+import { Route as ApiPublicJobsMonitorTradesRouteImport } from './routes/api/public/jobs/monitor-trades'
 import { Route as ApiPublicPaymentsInvoiceRouteImport } from './routes/api/public/payments/invoice'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -24,6 +25,12 @@ const SplatRoute = SplatRouteImport.update({
   path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicJobsMonitorTradesRoute =
+  ApiPublicJobsMonitorTradesRouteImport.update({
+    id: '/api/public/jobs/monitor-trades',
+    path: '/api/public/jobs/monitor-trades',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPaymentsInvoiceRoute =
   ApiPublicPaymentsInvoiceRouteImport.update({
     id: '/api/public/payments/invoice',
@@ -40,12 +47,14 @@ const ApiPublicPaymentsWebhookRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
@@ -53,20 +62,30 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/$' | '/api/public/payments/invoice' | '/api/public/payments/webhook'
+    | '/'
+    | '/$'
+    | '/api/public/jobs/monitor-trades'
+    | '/api/public/payments/invoice'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/$' | '/api/public/payments/invoice' | '/api/public/payments/webhook'
+    | '/'
+    | '/$'
+    | '/api/public/jobs/monitor-trades'
+    | '/api/public/payments/invoice'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
     | '/$'
+    | '/api/public/jobs/monitor-trades'
     | '/api/public/payments/invoice'
     | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
@@ -74,6 +93,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  ApiPublicJobsMonitorTradesRoute: typeof ApiPublicJobsMonitorTradesRoute
   ApiPublicPaymentsInvoiceRoute: typeof ApiPublicPaymentsInvoiceRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -92,6 +112,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/jobs/monitor-trades': {
+      id: '/api/public/jobs/monitor-trades'
+      path: '/api/public/jobs/monitor-trades'
+      fullPath: '/api/public/jobs/monitor-trades'
+      preLoaderRoute: typeof ApiPublicJobsMonitorTradesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/payments/invoice': {
@@ -114,6 +141,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  ApiPublicJobsMonitorTradesRoute: ApiPublicJobsMonitorTradesRoute,
   ApiPublicPaymentsInvoiceRoute: ApiPublicPaymentsInvoiceRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
