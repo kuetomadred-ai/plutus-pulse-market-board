@@ -1,0 +1,16 @@
+CREATE TABLE public.profiles (id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE, display_name text NOT NULL DEFAULT '', updated_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT, UPDATE ON public.profiles TO authenticated;
+GRANT ALL ON public.profiles TO service_role;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY profile_read ON public.profiles FOR SELECT TO authenticated USING (id=(SELECT auth.uid()));
+CREATE POLICY profile_insert ON public.profiles FOR INSERT TO authenticated WITH CHECK (id=(SELECT auth.uid()));
+CREATE POLICY profile_update ON public.profiles FOR UPDATE TO authenticated USING (id=(SELECT auth.uid())) WITH CHECK (id=(SELECT auth.uid()));
+CREATE FUNCTION public.create_client_profile() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN INSERT INTO public.profiles(id,display_name) VALUES(NEW.id,coalesce(NEW.raw_user_meta_data->>'name','')) ON CONFLICT(id) DO NOTHING; RETURN NEW; END $$;
+REVOKE ALL ON FUNCTION public.create_client_profile() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER client_profile_signup AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.create_client_profile();
+CREATE FUNCTION public.evaluate_accounts_on_quote() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN PERFORM public.pf_engine_evaluate_all(); RETURN NEW; END $$;
+REVOKE ALL ON FUNCTION public.evaluate_accounts_on_quote() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER evaluate_accounts_on_quote AFTER INSERT OR UPDATE ON public.pf_engine_quotes FOR EACH ROW EXECUTE FUNCTION public.evaluate_accounts_on_quote();
+CREATE FUNCTION public.evaluate_accounts_on_close() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN PERFORM public.pf_engine_evaluate_all(); RETURN NEW; END $$;
+REVOKE ALL ON FUNCTION public.evaluate_accounts_on_close() FROM PUBLIC,anon,authenticated;
+CREATE TRIGGER evaluate_accounts_on_close AFTER INSERT ON public.pf_engine_trades_history FOR EACH STATEMENT EXECUTE FUNCTION public.evaluate_accounts_on_close();
