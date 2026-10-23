@@ -17,7 +17,8 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-type Acc = Record<string, any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Acc = any;
 const $ = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 function Bar({ v, tone }: { v: number; tone: string }) {
