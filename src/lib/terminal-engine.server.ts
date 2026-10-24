@@ -72,6 +72,9 @@ export async function handleTerminalRequest(request: Request, path: string) {
       }
     }
     // Identity is verified above; engine RPCs enforce ownership atomically using p_user_id.
+    // Order execution cannot depend on whether the minute monitor just ran.
+    const { refreshEngineQuotes } = await import('./engine-quotes.server')
+    await refreshEngineQuotes()
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
     const { data, error } = await (supabaseAdmin as SupabaseClient).rpc(rpc, args)
     if (error) return reply({ error: error.message }, error.code === '42501' ? 403 : error.code === 'P0002' ? 404 : error.code === '55000' ? 409 : 400)
