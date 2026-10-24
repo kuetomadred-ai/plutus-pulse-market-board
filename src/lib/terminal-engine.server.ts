@@ -53,21 +53,21 @@ export async function handleTerminalRequest(request: Request, path: string) {
       const protection = z.object({ stopLoss: z.number().positive().nullable(), takeProfit: z.number().positive().nullable() }).strict()
       args = { p_user_id: userId }
       if (m[1] === 'positions') {
-        args.p_position_id = id
+        args['p_position_id'] = id
         if (m[3] === 'close' || m[3] === 'close-partial') {
           const x = z.object({ requestId: z.string().uuid(), ...(m[3] === 'close-partial' ? { lots: z.number().min(0.01).max(99.99) } : {}) }).strict().parse(body)
-          args.p_request_id = x.requestId
+          args['p_request_id'] = x.requestId
           rpc = m[3] === 'close' ? 'pf_engine_close_position' : 'pf_engine_close_partial'
-          if ('lots' in x) args.p_close_lots = x.lots
+          if ('lots' in x) args['p_close_lots'] = x.lots
         } else if (m[3] === 'protection') {
-          const x = protection.parse(body); rpc = 'pf_engine_modify_position'; args.p_sl = x.stopLoss; args.p_tp = x.takeProfit
+          const x = protection.parse(body); rpc = 'pf_engine_modify_position'; args['p_sl'] = x.stopLoss; args['p_tp'] = x.takeProfit
         } else return reply({ error: 'Not found' }, 404)
       } else {
-        args.p_order_id = id
+        args['p_order_id'] = id
         if (m[3] === 'cancel') { z.object({}).strict().parse(body); rpc = 'pf_engine_cancel_order' }
         else if (m[3] === 'modify') {
           const x = protection.extend({ price: z.number().positive() }).parse(body)
-          rpc = 'pf_engine_modify_order'; args.p_trigger = x.price; args.p_sl = x.stopLoss; args.p_tp = x.takeProfit
+          rpc = 'pf_engine_modify_order'; args['p_trigger'] = x.price; args['p_sl'] = x.stopLoss; args['p_tp'] = x.takeProfit
         } else return reply({ error: 'Not found' }, 404)
       }
     }

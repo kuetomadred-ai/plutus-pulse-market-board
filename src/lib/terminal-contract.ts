@@ -13,11 +13,11 @@ export function parseQuotes(payload: unknown, symbols: string[], now = Date.now(
   return rows.flatMap(raw => {
     if (!raw || typeof raw !== 'object') return []
     const r = raw as Record<string, unknown>
-    const symbol = String(r.symbol ?? '').toUpperCase(), bid = Number(r.bid), ask = Number(r.ask)
-    const time = r.timestamp ?? r.quoteAt ?? r.time
+    const symbol = String(r['symbol'] ?? '').toUpperCase(), bid = Number(r['bid']), ask = Number(r['ask'])
+    const time = r['timestamp'] ?? r['quoteAt'] ?? r['time']
     const quoteAt = typeof time === 'number' ? (time < 1e12 ? time * 1000 : time) : Date.parse(String(time ?? ''))
     if (!symbols.includes(symbol) || !Number.isFinite(bid) || bid <= 0 || !Number.isFinite(ask) || ask < bid || !Number.isFinite(quoteAt)) return []
-    if (r.stale === true || quoteAt < now - 15000 || quoteAt > now + 5000) return []
+    if (r['stale'] === true || quoteAt < now - 15000 || quoteAt > now + 5000) return []
     return [{ symbol, bid, ask, quoteAt: new Date(quoteAt).toISOString() }]
   })
 }
