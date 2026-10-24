@@ -18,5 +18,6 @@
 - [x] Global ESLint formatting errors fixed; lint has zero errors (six existing React Fast Refresh warnings remain)
 - [ ] Create and verify ten simulated two-step $10,000 accounts in current Cloud
 - [ ] Connect terminal authentication and persisted engine state to current Cloud
+- [ ] Complete same-origin engine API and local authentication SDK; verify signed-in terminal account flow
 - [ ] Enable independent price monitoring and verify offline SL/TP and account limits
 - [ ] Verify persistence, client isolation, and challenge rules end to end
