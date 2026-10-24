@@ -917,7 +917,7 @@ function freshDB(){return{
   commissionPerLot:3,consistencyPct:40,maxPosPct:50,weekendHold:false,payoutSplit:80,requireKYC:false,requireTerms:false},
  accounts:[],positions:[],orders:[],history:[],notifications:[],audit:[],payouts:[],chRequests:[],alerts:[],wallets:{},
  settings:{theme:'dark',lang:'en',
-  sbUrl:'https://jujjjvuspzfgrmeljljh.supabase.co',sbKey:'sb_publishable_X9YRYOHzL1v0OVXF_KRjiw_EHj7kTdV',
+  sbUrl:'https://c--54126d39-5659-4b36-87a8-0df734663018-prod.lovable.cloud',sbKey:'sb_publishable_L9gQEsjwTvTuy00yrE8IJQ_C-sHU656',
   paymentOn:false,paymentInfo:'Contact the manager to complete payment, then your account will be activated.',lastSym:'XAUUSD',lastTf:'1m',favorites:[],watchlist:null,oscH:140,
   ind:{ema20:false,ema50:false,ema200:false,sma200:false,wma20:false,bb:false,vwap:false,don:false,psar:false,ichi:false,mom:false,cci:false,adx:false,rsi:false,stoch:false,macd:false,atr:false},
    drawings:{},priceMargins:null,chart:{ohlc:false,dataWindow:false,volumes:false,tradePositions:true,tradeOrders:true,tradeHistory:true,grid:true,profitLoss:true,slTp:true,periodSeparators:false,askLine:true,lastPriceLine:true,oneClickPanel:true,countdown:false,freeMove:false,radialTap:true}}
@@ -971,7 +971,7 @@ function wTx(u,type,amt,note){var w=wallet(u);
 /* ===== cloud sync (Supabase) ===== */
 var CLOUD={ok:false,online:false,hydrated:false,pending:false,authRole:null,sb:null,seen:{},agg:null,lastError:null};
 var ENGINE={base:window.PLUTUS_ENGINE_CLIENT.baseUrl(window.PLUTUS_ENGINE_API_URL),online:false,ready:false,syncing:false,syncPromise:null,lastError:null};
-function engineRequest(path,body){return window.PLUTUS_ENGINE_CLIENT.request(ENGINE.base,CLOUD.sb,path,body)}
+function engineRequest(path,body){return window.PLUTUS_ENGINE_CLIENT.request(ENGINE.base,CLOUD.sb,(window.PLUTUS_NATIVE?'':'/api/public/engine')+path,body)}
 function engineUuid(){return window.PLUTUS_ENGINE_CLIENT.uuid()}
 function enginePosition(x,accountId,userId){return{id:x.id,accId:accountId,userId:userId,symbol:x.symbol,side:x.side,lots:+x.lots,entry:+x.entry_price,sl:x.stop_loss==null?null:+x.stop_loss,tp:x.take_profit==null?null:+x.take_profit,ts:0,openedAt:Date.parse(x.opened_at)||Date.now(),swap:0,src:'server',state:x.status}}
 function engineRefresh(){
@@ -984,17 +984,17 @@ function engineRefresh(){
   return Promise.all(accounts.map(function(row){return engineRequest('/v1/accounts/'+encodeURIComponent(row.id)+'/state').then(function(state){return{row:row,state:state}})}));
  }).then(function(states){
   var accountIds=states.map(function(x){return x.row.id});
-  var accounts=states.map(function(x){var r=x.row;return{id:r.id,login:r.id,userId:u.id,size:+r.initial_balance,balance:+r.balance,leverage:+r.leverage,currency:'USD',status:r.status,kind:'PAPER',createdAt:Date.parse(r.created_at)||Date.now(),days:[],curve:[{t:Date.now(),e:+r.balance}],dayKey:todayKey(),dayStartEq:+r.balance,highEq:+r.balance,paidTotal:0,swapTotal:0,ch:null,serverManaged:true}});
+  var accounts=states.map(function(x){var r=x.state.account||x.row;return{id:r.id,login:r.id,userId:u.id,size:+r.initial_balance,balance:+r.balance,leverage:+r.leverage,currency:'USD',status:r.status,kind:r.program||'PAPER',createdAt:Date.parse(r.created_at)||Date.now(),days:[],curve:[{t:Date.now(),e:+r.balance}],dayKey:r.day_key,dayStartEq:+r.day_start_balance,highEq:+r.initial_balance,paidTotal:0,swapTotal:0,ch:r.program==='PROP'?{status:r.challenge_status,phase:+r.phase,phaseCount:2,profitPct:+r.profit_target_pct,dailyLossPct:+r.daily_loss_pct,maxDDPct:+r.max_dd_pct,phaseTargets:[8,5],minDays:0}:null,serverManaged:true}});
   var positions=[],orders=[],history=[];
   states.forEach(function(x){var aid=x.row.id,s=x.state;
    (s.positions||[]).forEach(function(p){if(p.status==='OPEN')positions.push(enginePosition(p,aid,u.id));else history.push({id:p.id,accId:aid,userId:u.id,symbol:p.symbol,side:p.side,lots:+p.lots,entry:+p.entry_price,exit:+p.exit_price||0,sl:p.stop_loss,tp:p.take_profit,pnl:+p.realized_pnl||0,comm:0,reason:p.close_reason||'MANUAL',note:'',openedAt:Date.parse(p.opened_at)||Date.now(),closedAt:Date.parse(p.closed_at)||Date.now()})});
    (s.orders||[]).forEach(function(o){orders.push({id:o.id,clid:o.id,accId:aid,userId:u.id,symbol:o.symbol,side:o.side,type:o.order_type,lots:+o.lots,price:o.trigger_price==null?null:+o.trigger_price,sl:o.stop_loss,tp:o.take_profit,state:o.status,reason:o.reason,createdAt:Date.parse(o.created_at)||Date.now(),log:[]})});
    (s.ledger||[]).forEach(function(l){if(l.event==='POSITION_PARTIAL_CLOSE'){var d=l.details||{};history.push({id:'ledger-'+l.id,accId:aid,userId:u.id,symbol:d.symbol||'',side:d.side||'',lots:+d.lots||0,entry:+d.entry||0,exit:+d.price||0,pnl:+l.amount||0,comm:0,reason:'partial',note:'',openedAt:Date.parse(l.created_at)||Date.now(),closedAt:Date.parse(l.created_at)||Date.now()})}});
   });
-  // Keep locally/cloud-synced accounts (e.g. funded PROP) that the server engine does not manage.
+  // Authenticated trading state is exclusively server-owned; discard local account caches.
   var srvIds={};accountIds.forEach(function(id){srvIds[id]=1});
-  var keepAcc=function(a){return a.userId!==u.id||(!a.serverManaged&&!srvIds[a.id])};
-  var keepRow=function(x){return x.userId!==u.id||(!srvIds[x.accId]&&x.src!=='server'&&DB.accounts.some(function(a){return a.id===x.accId&&keepAcc(a)}))};
+  var keepAcc=function(a){return a.userId!==u.id};
+  var keepRow=function(x){return x.userId!==u.id};
   DB.positions=DB.positions.filter(keepRow).concat(positions);
   DB.orders=DB.orders.filter(keepRow).concat(orders);
   DB.history=DB.history.filter(keepRow).concat(history);
@@ -1019,7 +1019,7 @@ function queuePendingEmails(){
  })},Promise.resolve()).then(function(){return CLOUD.sb.from('pf_users_data').upsert({user_id:me.id,blob:userBlob(),updated_at:new Date().toISOString()})}).catch(function(e){CLOUD.lastError=e;return null})
 }
 function cloudLoadSdk(cb){if(window.supabase)return cb(true);
- var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+ var s=document.createElement('script');s.src='./vendor/supabase.js';
  s.onload=function(){cb(true)};s.onerror=function(){cb(false)};document.head.appendChild(s)}
 function cloudInit(){
  if(!DB.settings.sbUrl||!DB.settings.sbKey)return Promise.reject(new Error('Cloud database is not configured'));
@@ -1157,13 +1157,13 @@ function resendVerification(email){
  return CLOUD.sb.auth.resend({type:'signup',email:email,options:{emailRedirectTo:authRedirectUrl()}}).then(function(r){
   if(r.error)throw r.error;AUTH_RESEND_NOT_BEFORE=Date.now()+60000;return null}).catch(function(e){return e&&e.message?e.message:String(e)})}
 function doLogin(email,pass){
- if(!CLOUD.ok||!CLOUD.hydrated)return Promise.resolve('Cloud authentication is unavailable');
+ if(!CLOUD.ok||!CLOUD.hydrated)return cloudInit().then(function(){return doLogin(email,pass)});
  return CLOUD.sb.auth.signInWithPassword({email:email,password:pass}).then(function(r){
   if(r.error){if(r.error.code==='email_not_confirmed'||/not confirmed/i.test(r.error.message||''))return'Email is not verified. Use Resend verification below.';throw r.error}
   CLOUD.authRole=(r.data.user.app_metadata&&r.data.user.app_metadata.role)||null;var u=upsertAuthProfile(r.data.user);
   if(u.status==='SUSPENDED')return'Account suspended. Contact the manager.';
   if(u.status==='REVOKED')return'Account revoked. Contact the manager.';
-  DB.session=u.id;AUTH_PENDING_EMAIL='';return cloudPull().then(function(){save();audit(email,'Login','user '+u.id,'Supabase Auth');return null})})}
+  DEMO_MODE=false;DB.session=u.id;AUTH_PENDING_EMAIL='';return cloudPull().then(function(){save();audit(email,'Login','user '+u.id,'Supabase Auth');return ENGINE.ready?null:'Trading accounts could not be loaded. Please retry.'})})}
 var pendingNativeAuthUrl=null;
 function finishNativeAuthLink(rawUrl){
  if(!window.PLUTUS_NATIVE||!rawUrl)return Promise.resolve();
