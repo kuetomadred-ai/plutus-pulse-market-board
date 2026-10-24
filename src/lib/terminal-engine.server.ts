@@ -32,7 +32,7 @@ export async function handleTerminalRequest(request: Request, path: string) {
       if (error) throw error
       if (!account) return reply({ error: 'Account not found' }, 404)
       const tables = ['pf_engine_positions', 'pf_engine_orders', 'pf_engine_ledger', 'pf_engine_trades_history']
-      const results = await Promise.all(tables.map(table => client.from(table).select('*').eq('account_id', account.id).eq('user_id', userId).order('created_at' === 'created_at' && table === 'pf_engine_positions' ? 'opened_at' : table === 'pf_engine_trades_history' ? 'closed_at' : 'created_at', { ascending: false }).limit(500)))
+      const results = await Promise.all(tables.map(table => client.from(table).select('*').eq('account_id', account.id).eq('user_id', userId).order(table === 'pf_engine_positions' ? 'opened_at' : table === 'pf_engine_trades_history' ? 'closed_at' : 'created_at', { ascending: false }).limit(500)))
       const failed = results.find(r => r.error); if (failed?.error) throw failed.error
       return reply({ account, positions: results[0]?.data ?? [], orders: results[1]?.data ?? [], ledger: results[2]?.data ?? [], history: results[3]?.data ?? [] })
     }
