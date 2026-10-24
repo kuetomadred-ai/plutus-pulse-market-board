@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ApiPublicEngineSplatRouteImport } from './routes/api/public/engine/$'
 import { Route as ApiPublicJobsMonitorTradesRouteImport } from './routes/api/public/jobs/monitor-trades'
 import { Route as ApiPublicPaymentsInvoiceRouteImport } from './routes/api/public/payments/invoice'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -29,6 +30,11 @@ const SplatRoute = SplatRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEngineSplatRoute = ApiPublicEngineSplatRouteImport.update({
+  id: '/api/public/engine/$',
+  path: '/api/public/engine/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicJobsMonitorTradesRoute =
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
     | '/api/public/payments/invoice'
     | '/api/public/payments/webhook'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
     | '/api/public/payments/invoice'
     | '/api/public/payments/webhook'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
     | '/api/public/payments/invoice'
     | '/api/public/payments/webhook'
@@ -106,6 +118,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   DashboardRoute: typeof DashboardRoute
+  ApiPublicEngineSplatRoute: typeof ApiPublicEngineSplatRoute
   ApiPublicJobsMonitorTradesRoute: typeof ApiPublicJobsMonitorTradesRoute
   ApiPublicPaymentsInvoiceRoute: typeof ApiPublicPaymentsInvoiceRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -132,6 +145,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/engine/$': {
+      id: '/api/public/engine/$'
+      path: '/api/public/engine/$'
+      fullPath: '/api/public/engine/$'
+      preLoaderRoute: typeof ApiPublicEngineSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/jobs/monitor-trades': {
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   DashboardRoute: DashboardRoute,
+  ApiPublicEngineSplatRoute: ApiPublicEngineSplatRoute,
   ApiPublicJobsMonitorTradesRoute: ApiPublicJobsMonitorTradesRoute,
   ApiPublicPaymentsInvoiceRoute: ApiPublicPaymentsInvoiceRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,

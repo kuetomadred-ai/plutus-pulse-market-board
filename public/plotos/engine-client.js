@@ -47,7 +47,7 @@
           })
           .then(function (data) {
             if (!response.ok) throw new Error(data.error || "Trading API error " + response.status);
-            return data;
+             return data;
           });
       });
   }
