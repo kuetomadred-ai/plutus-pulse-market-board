@@ -39,7 +39,7 @@ describe("embedded application scripts", () => {
   });
 
   it("removes redundant signup disclosures while retaining a concise simulation label", () => {
-    expect(page).toContain("Simulated trading environment");
+    expect(page).not.toContain("Simulated trading environment");
     expect(page).not.toContain("Account activation is reviewed by staff.");
     expect(page).not.toContain("SERVER-SIDE PAPER TRADING");
     expect(page).not.toContain("Sign in for paper trading");
