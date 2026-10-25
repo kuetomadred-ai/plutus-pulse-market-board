@@ -2507,7 +2507,7 @@ function openDrawer(){var u=user();if(!u)return;
   $('#drawer').classList.add('on');$('#dOvl').classList.add('on');return}
  var a=myAcc(),accountName=a?(a.kind==='PAPER'?'Demo':'Zero'):'Trading account',server=a?'PLUTUS · #'+a.login:'No active account';
  var items=[
-  ['charts','⌁','Charts',''],['trade','⇅','Trade',''],['hist','▧','History',''],['messages','✉','Mailbox',''],
+  ['@dash','▦','لوحة التقييم (Dashboard)',''],['charts','⌁','Charts',''],['trade','⇅','Trade',''],['hist','▧','History',''],['messages','✉','Mailbox',''],
   ['@settings','⚙','Settings',''],['@offers','♟','Prop Firm (Funding)',''],['broker','◇','Broker Account',''],
   ['profile','◉','Profile',''],['@about','ⓘ','About','']];
  $('#drawer').innerHTML='<div class="drawer-account"><div class="drawer-brand"><span class="pmark">P</span><div><strong>PLUTUS</strong><small>MetaTrader 5</small></div></div>'+
@@ -2518,6 +2518,7 @@ function openDrawer(){var u=user();if(!u)return;
  $$('#drawer [data-go]').forEach(function(b){b.onclick=function(){var g=b.getAttribute('data-go');closeDrawer();
   if(g==='@settings'){navGo('charts');setTimeout(function(){try{chartSettings()}catch(e){}},60);return}
   if(g==='@offers'){showOffers();return}
+  if(g==='@dash'){try{(window.top||window).location.href='/dashboard'}catch(e){location.href='/dashboard'}return}
   if(g==='@about'){toast('PLUTUS · MetaTrader 5 style platform · Biquote market data','up');return}
   navGo(g)}});
  var am=$('#drawer [data-act="accounts"]');if(am)am.onclick=function(){closeDrawer();accountsModal()};
