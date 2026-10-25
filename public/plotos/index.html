@@ -1015,7 +1015,7 @@ function engineRefresh(){
   var myIds=DB.accounts.filter(function(a){return a.userId===u.id&&a.status!=='CLOSED'}).map(function(a){return a.id});
   if(myIds.indexOf(DB.activeAcc[u.id])<0)DB.activeAcc[u.id]=myIds[0]||null;
   ENGINE.online=true;ENGINE.ready=true;ENGINE.lastError=null;CLOUD.online=true;
-	  if(view!=='auth'&&view!=='admin'&&!$('#ovl').classList.contains('on')){renderStrip();if(view==='trade')paintTrade(true);if(view==='hist')renderHist();if(view==='charts'){chartDrawLines();renderChartPositionBar()}}
+	  if(view!=='auth'&&view!=='admin'&&!$('#ovl').classList.contains('on')){renderStrip();if(view==='trade')paintTrade(true);if(view==='hist')renderHist();if(view==='dash')renderDash();if(view==='charts'){chartDrawLines();renderChartPositionBar()}}
   return true;
 	 }).catch(function(e){ENGINE.online=false;ENGINE.lastError=e;CLOUD.online=false;CLOUD.lastError=e;return false}).then(function(v){ENGINE.syncing=false;ENGINE.syncPromise=null;return v},function(e){ENGINE.syncing=false;ENGINE.syncPromise=null;throw e});return ENGINE.syncPromise
 }
@@ -1417,7 +1417,7 @@ function closePartial(p,frac){
 	 TradingProvider.closePartial(p,closeLots).then(function(r){
 	  if(!r.ok){toast(r.error||'Partial close failed','dn');return}
 	  toast('Closed '+formatLots(closeLots)+' lots · P/L '+(r.pnl>=0?'+':'')+Number(r.pnl||0).toFixed(2),r.pnl>=0?'up':'dn');
-	  renderStrip();paintTrade(true);chartDrawLines();if(view==='hist')renderHist()
+	  renderStrip();paintTrade(true);chartDrawLines();if(view==='hist')renderHist();if(view==='dash')renderDash()
 	 }).catch(function(e){toast(e.message||'Partial close failed','dn')})}
 function closeAll(a,reason){var n=0;
  accPositions(a).forEach(function(p){var q=qt(p.symbol);if(!q)return;
