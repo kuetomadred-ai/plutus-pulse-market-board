@@ -1202,6 +1202,16 @@ function finishNativeAuthLink(rawUrl){
 window.addEventListener('plutus:native-url',function(e){finishNativeAuthLink(e.detail)});
 function enterDemo(){
  if(PORTAL_ADMIN){toast('Demo trading login is available from the Trading Portal only','dn');return}
+ var K='plutus_demo_device_v1',cred=null;try{cred=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
+ function create(){var id=(crypto.randomUUID?crypto.randomUUID():'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,function(c){return(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)}));
+  return fetch('/api/public/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:id})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.email)throw new Error(j.error||'Demo unavailable');cred={email:j.email,password:j.password};localStorage.setItem(K,JSON.stringify(cred));return cred})})}
+ toast('Opening your demo account…','up');
+ (cred?Promise.resolve(cred):create()).then(function(c){return doLogin(c.email,c.password).then(function(err){if(err&&/credentials/i.test(err)){localStorage.removeItem(K);return create().then(function(c2){return doLogin(c2.email,c2.password)})}return err})})
+  .then(function(err){if(err)throw new Error(err);enterApp(false)})
+  .catch(function(e){if(cred&&/Invalid login/i.test(String(e&&e.message))){localStorage.removeItem(K)}enterLocalDemo()})}
+window.enterDemo=enterDemo;
+function enterLocalDemo(){
+ if(PORTAL_ADMIN){toast('Demo trading login is available from the Trading Portal only','dn');return}
  DEMO_MODE=true;var id='demo-trader-local';loadLocalTrades(id);var u=DB.users.find(function(x){return x.id===id});
  if(!u){u={id:id,email:'demo@plotos.local',name:'Demo Trader',role:'TRADER',status:'ACTIVE',createdAt:Date.now(),refCode:'PFDEMO01',kyc:'NONE',termsAt:Date.now(),_u:Date.now()};DB.users.push(u)}
  var a=DB.accounts.find(function(x){return x.userId===id&&x.kind==='PAPER'});
@@ -2576,7 +2586,7 @@ function renderAuth(notice){var setup=false;
    return'<div class="lp-plan '+(i===0?'hot':'')+'">'+(i===0?'<em>'+esc(p.badge)+'</em>':'')+'<small>'+esc(p.shortName)+'</small><b>$'+(lo.size/1000)+'K–$'+(hi.size/1000)+'K</b><ul><li><span>Targets</span><i>'+esc(target)+'</i></li><li><span>Max drawdown</span><i>'+(p.trailingDD?'Trailing ':'')+p.maxDDPct+'%</i></li><li><span>Daily limit</span><i>'+(p.dailyLossPct?p.dailyLossPct+'%':'None')+'</i></li><li><span>Leverage</span><i>1:'+lo.lev+'</i></li><li><span>Fee range</span><i>$'+lo.fee+'–$'+hi.fee+'</i></li><li><span>Profit share</span><i>'+p.splitMin+'%–'+p.splitMax+'%</i></li><li><span>Fee credit</span><i>Wallet-paid fee returned at first approved payout</i></li></ul><button class="lp-cta lp-go">'+(p.mode==='instant'?'Request simulated account':'Request challenge review')+'</button></div>'}).join('')}
  $('#auth').style.display='flex';$('#app').style.display='none';
  var landingHtml=PORTAL_ADMIN?'':'<div class="lp">'+
-  '<nav class="lp-nav"><div class="lp-brand"><span class="lp-logo">P</span>PLUTUS</div><div class="lp-links"><a data-go="programs">Programs</a><a data-go="how">How it works</a><a data-go="platform">Platform</a><a data-go="broker">Broker simulator</a><a data-go="faq">FAQ</a></div><button class="lp-ghost" id="preDemo">Open login</button><button class="lp-cta lp-go">Get funded</button></nav>'+
+  '<nav class="lp-nav"><div class="lp-brand"><span class="lp-logo">P</span>PLUTUS</div><div class="lp-links"><a data-go="programs">Programs</a><a data-go="how">How it works</a><a data-go="platform">Platform</a><a data-go="broker">Broker simulator</a><a data-go="faq">FAQ</a></div><button class="lp-ghost" id="preDemo">Open demo</button><button class="lp-cta lp-go">Get funded</button></nav>'+
   '<div class="lp-ticker"><div class="lp-track" id="lpTrack"></div></div>'+
   '<header class="lp-hero"><div class="lp-copy"><span class="lp-pill"><i></i>Simulated programs · clear rules</span><h2>Build your edge.<br><span>Practice with a plan.</span></h2><p>Compare structured simulated funding paths, review risk rules up front, and practice on Biquote-priced markets in an MT5-inspired workspace. Simulated trading only.</p><div class="lp-actions"><button class="lp-cta big lp-go">Start the challenge</button><button class="lp-ghost big" id="preLearn">How it works →</button></div><div class="lp-stats"><div><b>'+PROP_PROGRAMS.length+'</b><small>Funding paths</small></div><div><b>'+BROKER_SIM_TEMPLATES.length+'</b><small>Practice profiles</small></div><div><b>1–2</b><small>Evaluation phases</small></div><div><b>Staff</b><small>Activation review</small></div></div></div><div class="lp-auth" id="heroAuth"><div class="lp-auth-h"><b>Client area</b><span>Sign in or create your profile</span></div></div></header>'+
   '<div class="lp-trust"><span>Market data</span><b>Biquote</b><span>Variable Bid / Ask</span><span>Historical OHLC</span><span>Streaming ticks</span><span style="display:inline-flex;align-items:center;gap:8px"><img src="assets/mt5-app-icon.png" alt="MetaTrader 5 icon" width="24" height="24" style="object-fit:contain">MT5-style simulator</span></div>'+
@@ -2615,7 +2625,7 @@ function renderAuth(notice){var setup=false;
    '<button class="btn" id="suBtn">Create account</button>'+
    '</div>'+
 
-   '<button class="btn ghost" id="demoBtn">Go to login</button>';
+   '<button class="btn" id="demoBtn" style="margin-top:10px">Open demo account</button>';
  }
  $('#auth').innerHTML=html;
  refreshLandingProgramCards();
