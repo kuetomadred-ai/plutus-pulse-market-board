@@ -25,7 +25,7 @@ describe("embedded application scripts", () => {
     expect(page).toContain("if(!r.data.user||!r.data.session)");
     expect(page).toContain("DB.session=null;DEMO_MODE=false;save()");
     expect(page).toContain("function runAuthButton(button,request,onSuccess)");
-    expect(page).toContain('id="demoBtn">Go to login');
+    expect(page).toContain('id="demoBtn" style="margin-top:10px">Open demo account');
   });
 
   it("presents Supabase resend cooldowns as a friendly, non-error status", () => {
