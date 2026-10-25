@@ -498,6 +498,18 @@ html[data-theme="light"] .drow .dots{border-color:#B9C2D4}
 .cprog{background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:16px;margin:0 14px 12px}
 .cprog .top{display:flex;align-items:center;gap:8px}.cprog .top h3{font-size:16px}
 .cprog .eq{font-family:var(--mono);font-size:27px;font-weight:600;margin:8px 0 2px}
+.dsh{padding:0 14px 90px;animation:dshIn .18s ease-out}@keyframes dshIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.dsh-hero{background:linear-gradient(135deg,var(--pn),var(--bg));border:1px solid var(--ln);border-radius:14px;padding:14px;margin:4px 0 10px}
+.dsh-hero small{color:var(--dim);font-size:10px;letter-spacing:.6px}.dsh-hero .big{font-family:var(--mono);font-size:26px;font-weight:700;margin:4px 0}
+.dsh-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;color:var(--mut)}
+.dsh-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.dsh-card{background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:10px 12px;min-width:0}
+.dsh-card small{display:block;color:var(--dim);font-size:9.5px;letter-spacing:.5px}.dsh-card b{display:block;font-family:var(--mono);font-size:15px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dsh-sec{background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:10px}
+.dsh-sec h5{font-size:11px;letter-spacing:.6px;color:var(--dim);margin:0 0 10px;font-weight:700}
+.dsh-bar{height:7px;border-radius:9px;background:var(--bg);overflow:hidden;margin:6px 0 10px}.dsh-bar i{display:block;height:100%;border-radius:9px}
+.dsh-li{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--ln);font-size:11.5px;font-family:var(--mono)}.dsh-li:last-child{border-bottom:0}
+.dsh-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid currentColor}
 .riskdash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 14px 12px}
 .riskcard{background:var(--pn);border:1px solid var(--ln);border-radius:11px;padding:10px 11px;min-width:0}
 .riskcard small{display:block;color:var(--dim);font-size:9px;letter-spacing:.5px;margin-bottom:5px}
@@ -776,6 +788,7 @@ html[dir="rtl"] #drawer{border-left:1px solid #292929}
       <section class="screen" id="v-charts"></section>
       <section class="screen" id="v-trade"></section>
       <section class="screen" id="v-hist"></section>
+      <section class="screen" id="v-dash"></section>
       <section class="screen" id="v-messages"></section>
       <section class="screen" id="v-prop"></section>
       <section class="screen" id="v-broker"></section>
@@ -1002,7 +1015,7 @@ function engineRefresh(){
   var myIds=DB.accounts.filter(function(a){return a.userId===u.id&&a.status!=='CLOSED'}).map(function(a){return a.id});
   if(myIds.indexOf(DB.activeAcc[u.id])<0)DB.activeAcc[u.id]=myIds[0]||null;
   ENGINE.online=true;ENGINE.ready=true;ENGINE.lastError=null;CLOUD.online=true;
-	  if(view!=='auth'&&view!=='admin'&&!$('#ovl').classList.contains('on')){renderStrip();if(view==='trade')paintTrade(true);if(view==='hist')renderHist();if(view==='charts'){chartDrawLines();renderChartPositionBar()}}
+	  if(view!=='auth'&&view!=='admin'&&!$('#ovl').classList.contains('on')){renderStrip();if(view==='trade')paintTrade(true);if(view==='hist')renderHist();if(view==='dash')renderDash();if(view==='charts'){chartDrawLines();renderChartPositionBar()}}
   return true;
 	 }).catch(function(e){ENGINE.online=false;ENGINE.lastError=e;CLOUD.online=false;CLOUD.lastError=e;return false}).then(function(v){ENGINE.syncing=false;ENGINE.syncPromise=null;return v},function(e){ENGINE.syncing=false;ENGINE.syncPromise=null;throw e});return ENGINE.syncPromise
 }
@@ -1188,6 +1201,16 @@ function finishNativeAuthLink(rawUrl){
 }
 window.addEventListener('plutus:native-url',function(e){finishNativeAuthLink(e.detail)});
 function enterDemo(){
+ if(PORTAL_ADMIN){toast('Demo trading login is available from the Trading Portal only','dn');return}
+ var K='plutus_demo_device_v1',cred=null;try{cred=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
+ function create(){var id=(crypto.randomUUID?crypto.randomUUID():'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,function(c){return(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)}));
+  return fetch('/api/public/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:id})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.email)throw new Error(j.error||'Demo unavailable');cred={email:j.email,password:j.password};localStorage.setItem(K,JSON.stringify(cred));return cred})})}
+ toast('Opening your demo account…','up');
+ (cred?Promise.resolve(cred):create()).then(function(c){return doLogin(c.email,c.password).then(function(err){if(err&&/credentials/i.test(err)){localStorage.removeItem(K);return create().then(function(c2){return doLogin(c2.email,c2.password)})}return err})})
+  .then(function(err){if(err)throw new Error(err);enterApp(false)})
+  .catch(function(e){if(cred&&/Invalid login/i.test(String(e&&e.message))){localStorage.removeItem(K)}enterLocalDemo()})}
+window.enterDemo=enterDemo;
+function enterLocalDemo(){
  if(PORTAL_ADMIN){toast('Demo trading login is available from the Trading Portal only','dn');return}
  DEMO_MODE=true;var id='demo-trader-local';loadLocalTrades(id);var u=DB.users.find(function(x){return x.id===id});
  if(!u){u={id:id,email:'demo@plotos.local',name:'Demo Trader',role:'TRADER',status:'ACTIVE',createdAt:Date.now(),refCode:'PFDEMO01',kyc:'NONE',termsAt:Date.now(),_u:Date.now()};DB.users.push(u)}
@@ -1404,7 +1427,7 @@ function closePartial(p,frac){
 	 TradingProvider.closePartial(p,closeLots).then(function(r){
 	  if(!r.ok){toast(r.error||'Partial close failed','dn');return}
 	  toast('Closed '+formatLots(closeLots)+' lots · P/L '+(r.pnl>=0?'+':'')+Number(r.pnl||0).toFixed(2),r.pnl>=0?'up':'dn');
-	  renderStrip();paintTrade(true);chartDrawLines();if(view==='hist')renderHist()
+	  renderStrip();paintTrade(true);chartDrawLines();if(view==='hist')renderHist();if(view==='dash')renderDash()
 	 }).catch(function(e){toast(e.message||'Partial close failed','dn')})}
 function closeAll(a,reason){var n=0;
  accPositions(a).forEach(function(p){var q=qt(p.symbol);if(!q)return;
@@ -2484,7 +2507,7 @@ function navGo(v){view=v;var app=$('#app');if(app)app.classList.toggle('chartMod
 window.navGo=navGo;
 function renderView(){var u=user();
  if(!u){renderAuth();return}
- var fns={quotes:renderQuotes,charts:openCharts,trade:renderTrade,hist:renderHist,messages:renderMessages,prop:renderProp,broker:renderBroker,profile:renderProfile,admin:renderAdmin};
+ var fns={quotes:renderQuotes,charts:openCharts,trade:renderTrade,hist:renderHist,dash:renderDash,messages:renderMessages,prop:renderProp,broker:renderBroker,profile:renderProfile,admin:renderAdmin};
  var fn=fns[view];
  if(!fn)return;
  try{fn()}catch(e){showErr(e);var el=$('#v-'+view);if(el)el.innerHTML='<div class="empty">This screen failed to render.<br>'+esc(e.message)+'</div>'}
@@ -2507,7 +2530,7 @@ function openDrawer(){var u=user();if(!u)return;
   $('#drawer').classList.add('on');$('#dOvl').classList.add('on');return}
  var a=myAcc(),accountName=a?(a.kind==='PAPER'?'Demo':'Zero'):'Trading account',server=a?'PLUTUS · #'+a.login:'No active account';
  var items=[
-  ['@dash','▦','لوحة التقييم (Dashboard)',''],['charts','⌁','Charts',''],['trade','⇅','Trade',''],['hist','▧','History',''],['messages','✉','Mailbox',''],
+  ['dash','▦','Dashboard',''],['charts','⌁','Charts',''],['trade','⇅','Trade',''],['hist','▧','History',''],['messages','✉','Mailbox',''],
   ['@settings','⚙','Settings',''],['@offers','♟','Prop Firm (Funding)',''],['broker','◇','Broker Account',''],
   ['profile','◉','Profile',''],['@about','ⓘ','About','']];
  $('#drawer').innerHTML='<div class="drawer-account"><div class="drawer-brand"><span class="pmark">P</span><div><strong>PLUTUS</strong><small>MetaTrader 5</small></div></div>'+
@@ -2518,7 +2541,6 @@ function openDrawer(){var u=user();if(!u)return;
  $$('#drawer [data-go]').forEach(function(b){b.onclick=function(){var g=b.getAttribute('data-go');closeDrawer();
   if(g==='@settings'){navGo('charts');setTimeout(function(){try{chartSettings()}catch(e){}},60);return}
   if(g==='@offers'){showOffers();return}
-  if(g==='@dash'){try{(window.top||window).location.href='/dashboard'}catch(e){location.href='/dashboard'}return}
   if(g==='@about'){toast('PLUTUS · MetaTrader 5 style platform · Biquote market data','up');return}
   navGo(g)}});
  var am=$('#drawer [data-act="accounts"]');if(am)am.onclick=function(){closeDrawer();accountsModal()};
@@ -2564,15 +2586,15 @@ function renderAuth(notice){var setup=false;
    return'<div class="lp-plan '+(i===0?'hot':'')+'">'+(i===0?'<em>'+esc(p.badge)+'</em>':'')+'<small>'+esc(p.shortName)+'</small><b>$'+(lo.size/1000)+'K–$'+(hi.size/1000)+'K</b><ul><li><span>Targets</span><i>'+esc(target)+'</i></li><li><span>Max drawdown</span><i>'+(p.trailingDD?'Trailing ':'')+p.maxDDPct+'%</i></li><li><span>Daily limit</span><i>'+(p.dailyLossPct?p.dailyLossPct+'%':'None')+'</i></li><li><span>Leverage</span><i>1:'+lo.lev+'</i></li><li><span>Fee range</span><i>$'+lo.fee+'–$'+hi.fee+'</i></li><li><span>Profit share</span><i>'+p.splitMin+'%–'+p.splitMax+'%</i></li><li><span>Fee credit</span><i>Wallet-paid fee returned at first approved payout</i></li></ul><button class="lp-cta lp-go">'+(p.mode==='instant'?'Request simulated account':'Request challenge review')+'</button></div>'}).join('')}
  $('#auth').style.display='flex';$('#app').style.display='none';
  var landingHtml=PORTAL_ADMIN?'':'<div class="lp">'+
-  '<nav class="lp-nav"><div class="lp-brand"><span class="lp-logo">P</span>PLUTUS</div><div class="lp-links"><a data-go="programs">Programs</a><a data-go="how">How it works</a><a data-go="platform">Platform</a><a data-go="broker">Broker simulator</a><a data-go="faq">FAQ</a></div><button class="lp-ghost" id="preDemo">Open login</button><button class="lp-cta lp-go">Get funded</button></nav>'+
+  '<nav class="lp-nav"><div class="lp-brand"><span class="lp-logo">P</span>PLUTUS</div><div class="lp-links"><a data-go="programs">Programs</a><a data-go="how">How it works</a><a data-go="platform">Platform</a><a data-go="broker">Broker simulator</a><a data-go="faq">FAQ</a></div><button class="lp-ghost" id="preDemo">Open demo</button><button class="lp-cta lp-go">Get funded</button></nav>'+
   '<div class="lp-ticker"><div class="lp-track" id="lpTrack"></div></div>'+
-  '<header class="lp-hero"><div class="lp-copy"><span class="lp-pill"><i></i>Simulated programs · clear rules</span><h2>Build your edge.<br><span>Practice with a plan.</span></h2><p>Compare structured simulated funding paths, review risk rules up front, and practice on Biquote-priced markets in an MT5-inspired workspace. Simulated trading only.</p><div class="lp-actions"><button class="lp-cta big lp-go">Start the challenge</button><button class="lp-ghost big" id="preLearn">How it works →</button></div><div class="lp-stats"><div><b>'+PROP_PROGRAMS.length+'</b><small>Funding paths</small></div><div><b>'+BROKER_SIM_TEMPLATES.length+'</b><small>Practice profiles</small></div><div><b>1–2</b><small>Evaluation phases</small></div><div><b>Staff</b><small>Activation review</small></div></div></div><div class="lp-auth" id="heroAuth"><div class="lp-auth-h"><b>Client area</b><span>Sign in or create your profile</span></div></div></header>'+
+  '<header class="lp-hero"><div class="lp-copy"><span class="lp-pill"><i></i>Funding programs · clear rules</span><h2>Build your edge.<br><span>Practice with a plan.</span></h2><p>Compare structured simulated funding paths, review risk rules up front, and practice on Biquote-priced markets in an MT5-inspired workspace.</p><div class="lp-actions"><button class="lp-cta big lp-go">Start the challenge</button><button class="lp-ghost big" id="preLearn">How it works →</button></div><div class="lp-stats"><div><b>'+PROP_PROGRAMS.length+'</b><small>Funding paths</small></div><div><b>'+BROKER_SIM_TEMPLATES.length+'</b><small>Practice profiles</small></div><div><b>1–2</b><small>Evaluation phases</small></div><div><b>Staff</b><small>Activation review</small></div></div></div><div class="lp-auth" id="heroAuth"><div class="lp-auth-h"><b>Client area</b><span>Sign in or create your profile</span></div></div></header>'+
   '<div class="lp-trust"><span>Market data</span><b>Biquote</b><span>Variable Bid / Ask</span><span>Historical OHLC</span><span>Streaming ticks</span><span style="display:inline-flex;align-items:center;gap:8px"><img src="assets/mt5-app-icon.png" alt="MetaTrader 5 icon" width="24" height="24" style="object-fit:contain">MT5-style simulator</span></div>'+
   '<section class="lp-sec" id="lp-programs"><span class="lp-kicker">FUNDING PROGRAMS</span><h3>Choose your account size</h3><p class="lp-lead">Compare simulated program paths, sizes and risk rules before requesting review.</p><div class="lp-plans">'+DB.templates.map(function(t,i){return'<div class="lp-plan'+(i==1?' hot':'')+'">'+(i==1?'<em>FEATURED PLAN</em>':'')+'<small>ACCOUNT SIZE</small><b>$'+(t.size/1000)+',000</b><ul><li><span>Profit target</span><i>'+t.profitPct+'%</i></li><li><span>Max drawdown</span><i>'+t.maxDDPct+'%</i></li><li><span>Min. trading days</span><i>'+t.minDays+'</i></li><li><span>Leverage</span><i>1:'+t.lev+'</i></li><li><span>Configured fee</span><i>$'+t.fee+'</i></li></ul><button class="lp-cta lp-go">Start challenge</button></div>'}).join('')+'</div></section>'+
   '<section class="lp-sec" id="lp-broker"><span class="lp-kicker">BROKER SIMULATOR</span><h3>Practice market access, on your terms</h3><p class="lp-lead">Choose a practice profile with variable Biquote pricing and a simulated balance.</p><div class="lp-broker-grid">'+BROKER_SIM_TEMPLATES.map(function(p){return'<article class="lp-broker-card"><span class="lp-broker-tag">PRACTICE PROFILE</span><h4>'+esc(p.name)+'</h4><div class="lp-broker-metrics"><div><small>Practice balance</small><b>$'+p.minDep.toLocaleString()+'</b></div><div><small>Leverage</small><b>1:'+p.lev+'</b></div><div><small>Spread</small><b>'+esc(p.spreadLabel)+'</b></div><div><small>Commission</small><b>$'+p.comm+'/lot</b></div></div><button class="lp-cta lp-go">Create practice profile</button></article>'}).join('')+'</div></section>'+
   '<section class="lp-sec" id="lp-how"><span class="lp-kicker">HOW IT WORKS</span><h3>Three steps to your practice path</h3><div class="lp-steps"><div><i>1</i><b>Choose a path</b><p>Compare the 1-step, 2-step and direct simulated programs and review their rules.</p></div><div><i>2</i><b>Review</b><p>Your simulated account results and risk-rule compliance are recorded for review.</p></div><div><i>3</i><b>Staff review</b><p>Authorized staff review each request before simulated account access is activated.</p></div></div></section>'+
   '<section class="lp-sec lp-platform" id="lp-platform"><div><span class="lp-kicker">PLATFORM</span><h3>A mobile-ready practice terminal</h3><p class="lp-lead">Market Watch, one-click trading, pending orders, SL/TP drag on chart, 30+ indicators, 9 timeframes and full trade history — wherever you are.</p><ul class="lp-feat"><li>Biquote Bid/Ask prices; streaming ticks when available</li><li>Candlestick, bar and line charts</li><li>Market, Limit and Stop orders</li><li>Real-time margin and risk monitoring</li></ul></div><div class="lp-phone"><div class="lp-screen"><div class="lp-qh"><span>Quotes</span></div><div id="lpQuotes"></div></div></div></section>'+
-  '<section class="lp-sec" id="lp-faq"><span class="lp-kicker">FAQ</span><h3>Frequently asked questions</h3><div class="lp-faq"><details><summary>What is a prop trading challenge?</summary><p>An evaluation where you trade a simulated account under configured risk rules.</p></details><details><summary>Where do prices come from?</summary><p>Symbols, Bid/Ask prices and historical candles are supplied by Biquote.</p></details><details><summary>Are funds and payouts real?</summary><p>Trading and balances are simulated; no live broker orders are placed.</p></details><details><summary>What happens when a market closes?</summary><p>The last available Biquote price remains visible, clearly marked as closed, while new market orders stay disabled.</p></details></div></section>'+
+  '<section class="lp-sec" id="lp-faq"><span class="lp-kicker">FAQ</span><h3>Frequently asked questions</h3><div class="lp-faq"><details><summary>What is a prop trading challenge?</summary><p>An evaluation where you trade a simulated account under configured risk rules.</p></details><details><summary>Where do prices come from?</summary><p>Symbols, Bid/Ask prices and historical candles are supplied by Biquote.</p></details><details><summary>What happens when a market closes?</summary><p>The last available Biquote price remains visible, clearly marked as closed, while new market orders stay disabled.</p></details></div></section>'+
   '</div>';
  var html='<div class="auth-box">'+
   '<div class="logo"><span class="pmark">P</span><img src="assets/mt5-app-icon.png" alt="MetaTrader 5 app icon" width="32" height="32" style="object-fit:contain"><h1>'+(PORTAL_ADMIN?'PLUTUS Admin':'PLUTUS')+'</h1></div>'+
@@ -2603,15 +2625,15 @@ function renderAuth(notice){var setup=false;
    '<button class="btn" id="suBtn">Create account</button>'+
    '</div>'+
 
-   '<button class="btn ghost" id="demoBtn">Go to login</button>';
+   '<button class="btn" id="demoBtn" style="margin-top:10px">Open demo account</button>';
  }
  $('#auth').innerHTML=html;
  refreshLandingProgramCards();
  refreshLandingClaims();
  var splitNote=document.querySelector('#auth #lp-programs .lp-lead');if(splitNote)splitNote.textContent+=' Share ranges show configured rates; increases are not automatic.';
- function refreshLandingClaims(){var hero=document.querySelector('#auth .lp-hero .lp-copy');if(hero){var h=hero.querySelector('h2'),p=hero.querySelector('p');if(h)h.innerHTML='Build your edge.<br><span>Practice with a plan.</span>';if(p)p.textContent='Compare simulated funding paths, review clear risk rules and practice with Biquote market data in a mobile-ready workspace. Simulated trading only.';var pill=hero.querySelector('.lp-pill');if(pill)pill.innerHTML='<i></i>Simulated trading environment';var labels=hero.querySelectorAll('.lp-stats small');if(labels.length>1)labels[1].textContent='Practice accounts'}
+ function refreshLandingClaims(){var hero=document.querySelector('#auth .lp-hero .lp-copy');if(hero){var h=hero.querySelector('h2'),p=hero.querySelector('p');if(h)h.innerHTML='Build your edge.<br><span>Practice with a plan.</span>';if(p)p.textContent='Compare simulated funding paths, review clear risk rules and practice with Biquote market data in a mobile-ready workspace.';var pill=hero.querySelector('.lp-pill');if(pill)pill.innerHTML='<i></i>Professional trading platform';var labels=hero.querySelectorAll('.lp-stats small');if(labels.length>1)labels[1].textContent='Practice accounts'}
   var trust=document.querySelector('#auth .lp-trust');if(trust)trust.innerHTML='<span>Market data</span><b>Biquote</b><span>Bid / Ask quotes</span><span>Historical OHLC</span><span>Streaming ticks when available</span>';
-  var platform=document.querySelector('#auth .lp-platform');if(platform){var ph=platform.querySelector('h3'),pp=platform.querySelector('.lp-lead');if(ph)ph.textContent='Mobile-ready trading simulator';if(pp)pp.textContent='A familiar trading interface for practice: Market Watch, one-click simulated trades, pending orders, chart tools, indicators and trade history. Trading is simulated; no live broker is connected.'}
+  var platform=document.querySelector('#auth .lp-platform');if(platform){var ph=platform.querySelector('h3'),pp=platform.querySelector('.lp-lead');if(ph)ph.textContent='Mobile-ready trading simulator';if(pp)pp.textContent='A familiar trading interface for practice: Market Watch, one-click simulated trades, pending orders, chart tools, indicators and trade history.'}
   var nav=document.querySelector('#auth .lp-nav .lp-go');if(nav)nav.textContent='Explore programs';var heroBtn=document.querySelector('#auth .lp-actions .lp-go');if(heroBtn)heroBtn.textContent='Explore simulated programs'}
  (function(){var ha=document.getElementById('heroAuth');if(!ha)return;var box=document.querySelector('#auth .auth-box');box.classList.add('lp-mode');Array.prototype.slice.call(box.children).forEach(function(c){if(!c.classList.contains('lp')&&!c.classList.contains('logo')&&!c.classList.contains('auth-sub'))ha.appendChild(c)});
   document.querySelectorAll('#auth [data-go]').forEach(function(x){x.onclick=function(){var t=document.getElementById('lp-'+x.dataset.go);if(t)t.scrollIntoView({behavior:'smooth'})}});
@@ -2991,6 +3013,34 @@ function paintTrade(force){var a=myAcc();if(!a||view!=='trade'||!$('#posList'))r
   bindPosButtons(eo)}}
 
 /* HISTORY */
+function renderDash(){var el=$('#v-dash'),a=myAcc();
+ var head='<div class="phead"><button class="pib" onclick="openDrawer()">'+menuSvg()+'</button><b>Dashboard</b><span class="sp"></span><button class="pib" id="dAcc" title="Switch account">'+accSvg()+'</button></div>';
+ if(!a){el.innerHTML=head+'<div class="empty">No active account</div>';return}
+ var M=accMetrics(a),ch=a.ch,init=+a.size||0,eq=M.eq,bal=+a.balance||0,pnl=eq-init,flt=eq-bal;
+ var tgtPct=ch?(+ch.profitPct||0):0,dlPct=ch?(+ch.dailyLossPct||0):(DB.riskRules.dailyLossPct||0),ddPct=ch?(+ch.maxDDPct||0):(DB.riskRules.maxDDPct||0);
+ var tgt=init*tgtPct/100,dayStart=+a.dayStartEq||init,dayLim=dayStart*dlPct/100,dayUsed=Math.max(0,dayStart-eq),ddLim=init*ddPct/100,ddUsed=Math.max(0,init-eq);
+ var deals=DB.history.filter(function(x){return x.accId===a.id}),pos=accPositions(a);
+ var wins=deals.filter(function(x){return x.pnl>0}),loss=deals.filter(function(x){return x.pnl<0});
+ var gw=wins.reduce(function(t,x){return t+x.pnl},0),gl=Math.abs(loss.reduce(function(t,x){return t+x.pnl},0));
+ var days={};deals.forEach(function(x){days[new Date(x.closedAt).toISOString().slice(0,10)]=1});
+ var best=deals.reduce(function(m,x){return Math.max(m,x.pnl)},0),worst=deals.reduce(function(m,x){return Math.min(m,x.pnl)},0);
+ function col(v){return v>=0?'var(--up)':'var(--dn)'}
+ function bar(lbl,used,lim,c){var p=lim>0?Math.max(0,Math.min(100,used/lim*100)):0;return'<div class="dsh-row"><span>'+lbl+'</span><span>'+money(Math.max(0,used))+' / '+money(lim)+'</span></div><div class="dsh-bar"><i style="width:'+p+'%;background:'+c+'"></i></div>'}
+ var st=ch?ch.status:a.status,stc=/BREACH|FAIL/.test(st)?'var(--dn)':/PASS|FUND/.test(st)?'var(--up)':'var(--ac)';
+ var h=head+'<div class="dsh">'+
+ '<div class="dsh-hero"><div class="dsh-row"><small>'+(a.kind==='PAPER'?'DEMO':'EVALUATION')+(ch&&ch.phase?' · PHASE '+ch.phase+(ch.phaseCount?' / '+ch.phaseCount:''):'')+' · #'+esc(String(a.login))+'</small><span class="dsh-pill" style="color:'+stc+'">'+esc(st||'ACTIVE')+'</span></div>'+
+ '<div class="big">'+money(eq)+'</div><div class="dsh-row"><span>Equity · 1:'+(+a.leverage||100)+'</span><b style="color:'+col(pnl)+';font-family:var(--mono)">'+(pnl>=0?'+':'')+money(pnl)+' ('+(init?(pnl/init*100).toFixed(2):'0.00')+'%)</b></div></div>'+
+ '<div class="dsh-grid">'+
+  [['BALANCE',money(bal),''],['FLOATING P/L',money(flt),col(flt)],['TODAY P/L',money(M.dailyPL),col(M.dailyPL)],['FREE MARGIN',money(M.free),''],
+   ['TO TARGET',tgt?money(Math.max(0,tgt-pnl)):'—',''],['MARGIN LEVEL',M.um>0?M.ml.toFixed(0)+'%':'—',''],
+   ['WIN RATE',deals.length?(wins.length/deals.length*100).toFixed(0)+'%':'—',''],['PROFIT FACTOR',gl>0?(gw/gl).toFixed(2):(gw>0?'∞':'—'),''],
+   ['TRADES',String(deals.length),''],['TRADING DAYS',String(Object.keys(days).length),''],
+   ['BEST TRADE',money(best),'var(--up)'],['WORST TRADE',money(worst),'var(--dn)']].map(function(c){return'<div class="dsh-card"><small>'+c[0]+'</small><b'+(c[2]?' style="color:'+c[2]+'"':'')+'>'+c[1]+'</b></div>'}).join('')+'</div>'+
+ '<div class="dsh-sec"><h5>OBJECTIVES</h5>'+(tgt?bar('Profit target '+tgtPct+'%',pnl,tgt,'var(--up)'):'')+(dlPct?bar('Daily loss limit '+dlPct+'%',dayUsed,dayLim,'var(--dn)'):'')+(ddPct?bar('Max drawdown '+ddPct+'%',ddUsed,ddLim,'var(--dn)'):'')+'</div>'+
+ '<div class="dsh-sec"><h5>OPEN POSITIONS ('+pos.length+')</h5>'+(pos.length?pos.map(function(p){return'<div class="dsh-li"><span>'+esc(p.symbol)+' '+esc(String(p.side).toUpperCase())+' '+(+p.lots).toFixed(2)+'</span><span>'+esc(String(p.entry))+'</span></div>'}).join(''):'<div class="empty" style="padding:8px">No open positions</div>')+'</div>'+
+ '<div class="dsh-sec"><h5>RECENT TRADES</h5>'+(deals.length?deals.slice(0,15).map(function(x){return'<div class="dsh-li"><span>'+esc(x.symbol)+' '+esc(String(x.side).toUpperCase())+' '+(+x.lots).toFixed(2)+'</span><b style="color:'+col(x.pnl)+'">'+(x.pnl>=0?'+':'')+(+x.pnl).toFixed(2)+'</b></div>'}).join(''):'<div class="empty" style="padding:8px">No closed trades yet</div>')+'</div>'+
+ '</div>';
+ el.innerHTML=h;$('#dAcc').onclick=accountsModal}
 function renderHist(){var el=$('#v-hist'),a=myAcc();
  var html='<div class="phead">'+
  '<button class="pib" onclick="openDrawer()">'+menuSvg()+'</button><b>History</b><span class="sp"></span>'+
@@ -3134,7 +3184,7 @@ function renderProp(){var el=$('#v-prop'),a=myAcc();
  '<button class="pib" onclick="openDrawer()">'+menuSvg()+'</button>'+
  '<span class="pmark" style="width:22px;height:22px;font-size:12px">P</span><b>PROP FIRM</b><span class="sp"></span>'+
  '<button class="pib" id="pAcc" title="Switch account">'+accSvg()+'</button></div>';
- var html2='<section class="funding-hero"><div class="funding-copy"><span class="funding-kicker">SIMULATED PROGRAMS · STAFF REVIEW</span><h2>Choose your path.<br><em>Build consistency.</em></h2><p>Compare account sizes and risk rules before requesting a program. Authorized staff review each request before activation.</p></div><div class="funding-stats"><div><b>'+PROP_PROGRAMS.length+'</b><span>Program paths</span></div><div><b>1–2</b><span>Evaluation phases</span></div><div><b>STAFF</b><span>Activation review</span></div></div></section>';
+ var html2='<section class="funding-hero"><div class="funding-copy"><span class="funding-kicker">FUNDING PROGRAMS</span><h2>Choose your path.<br><em>Build consistency.</em></h2><p>Compare account sizes and risk rules before requesting a program. Authorized staff review each request before activation.</p></div><div class="funding-stats"><div><b>'+PROP_PROGRAMS.length+'</b><span>Program paths</span></div><div><b>1–2</b><span>Evaluation phases</span></div><div><b>STAFF</b><span>Activation review</span></div></div></section>';
  if(!a){html2='<div class="na-card"><h3>Choose your program</h3><p>Compare the simulated plans and submit a request for staff review before activation. '+esc(DB.settings.paymentInfo||'')+'</p></div>'+plansHTML()+leaderboardHTML();el.innerHTML=html+html2;bindReq();$('#pAcc').onclick=accountsModal;return}
 	 var ch=a.ch,M=accMetrics(a);
 	 var rv=RiskEval(a),riskText=rv.state==='BREACHED'?'RISK BREACHED':rv.state==='WARNING'?'RISK WARNING':'RISK CLEAR',riskCls=rv.state==='BREACHED'?'dn':rv.state==='WARNING'?'warn':'';
@@ -3157,7 +3207,7 @@ function renderProp(){var el=$('#v-prop'),a=myAcc();
 	  var tpl=DB.templates.find(function(x){return x.id===a.templateId}),isDirect=ch.programMode==='instant';
 	  var title=tpl?esc(tpl.programName||tpl.name):'Simulated program';
 	  var phaseLabel=isDirect?'Direct simulated funding':(ch.phaseCount>1?' · Phase '+(ch.phase||1)+' of '+ch.phaseCount:' · Single phase');
-	  html2+='<div class="brandline"><span class="pmark">P</span>PLUTUS · SIMULATED PROGRAM</div>'+
+	  html2+='<div class="brandline"><span class="pmark">P</span>PLUTUS · FUNDED PROGRAM</div>'+
 	  '<div class="cprog"><div style="display:flex;align-items:center;gap:8px"><h3 style="font-size:16px">$'+a.size.toLocaleString()+' '+title+esc(phaseLabel)+'</h3><span class="badge '+ch.status+'">'+ch.status+'</span></div>'+
 	  '<div class="eq" id="chEq">'+money(M.eq)+'</div>'+
 	  (isDirect?'<div class="prow"><span>Evaluation target</span><b>None · staff approval required</b></div>':'<div class="prow"><span>Profit target ('+ch.profitPct+'%)</span><b>'+pp.toFixed(2)+'%</b></div><div class="pbar"><i id="chP1" style="width:'+(ch.profitPct>0?Math.min(100,pp/ch.profitPct*100):0)+'%"></i></div>')+
@@ -3175,7 +3225,7 @@ function renderProp(){var el=$('#v-prop'),a=myAcc();
   (ch.payoutCadenceDays?'<div class="prow"><span>Request interval</span><b>Every '+ch.payoutCadenceDays+' days</b></div>':'')+
 	   '<div class="prow"><span>Consistency</span><b style="color:'+(cc.ok?'var(--up)':'var(--dn)')+'">'+(cc.ok?'PASS':'BLOCKED — spread your profits')+'</b></div>'+
    (funded?'<button class="btn gold" style="margin-top:12px" id="pyReq">Request payout — '+money(avail)+'</button>':'<div class="demo-hint" style="margin-top:12px">Challenge passed — payout requests unlock after staff approves the account as FUNDED.</div>')+
-	   '<button class="btn ghost" style="margin-top:8px" id="pyCert">Download certificate</button><div style="font-size:10px;color:var(--dim);margin-top:8px">Payouts are simulated wallet credits and require staff review.</div></div>'}
+	   '<button class="btn ghost" style="margin-top:8px" id="pyCert">Download certificate</button></div>'}
   html2+='<div class="pad" style="padding-bottom:4px"><div class="sec">Equity curve</div>'+
   '<div style="background:var(--pn);border:1px solid var(--ln);border-radius:12px;direction:ltr"><div id="eqChart" style="height:150px"></div></div></div>'}
  html2+=plansHTML()+leaderboardHTML();
@@ -3293,7 +3343,7 @@ function renderBroker(){var el=$('#v-broker'),u=user(),a=myAcc();
  '<div style="display:flex;gap:8px;margin:10px 14px">'+
  '<button class="btn sm grn" style="flex:1" id="newPaper">+ New practice profile</button>'+
  (a?'<button class="btn sm ghost" style="flex:1" onclick="navGo(\'trade\')">Trade screen →</button>':'')+'</div>';
- html+='<div class="demo-hint" style="margin:0 14px 10px"><b>Simulation only.</b> Biquote prices and variable spreads. Orders and balances stay simulated; no live broker is connected.</div>';
+ 
  if(a){var M=accMetrics(a);
   html+='<div class="pad" style="padding-top:0"><div class="kgrid c3">'+
   '<div class="kc"><small>BALANCE</small><span class="v mono">'+money(a.balance)+'</span></div>'+
@@ -3325,7 +3375,7 @@ function bindAccBtns(){
  var np=$('#newPaper');
  if(np)np.onclick=function(){
   var profiles=DB.templates.filter(function(t){return t.programId==='broker_sim'});
-  modal('<h4>New practice account</h4><p style="font-size:11.5px;color:var(--mut);margin-bottom:10px">Practice profiles only. Biquote supplies the simulated prices and variable Bid/Ask spread.</p>'+
+  modal('<h4>New practice account</h4><p style="font-size:11.5px;color:var(--mut);margin-bottom:10px"></p>'+
   '<div class="fld"><label>SIMULATION PROFILE</label><select id="npSz">'+profiles.map(function(t){return'<option value="'+t.id+'">'+esc(t.name)+' · $'+t.size.toLocaleString()+' · 1:'+t.lev+' · '+money(commissionPerLotFor(t))+'/lot</option>'}).join('')+'</select></div>'+
   '<div class="mrow-btns"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn grn" id="npGo">Create</button></div>');
   $('#npGo').onclick=function(){

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ApiPublicDemoRouteImport } from './routes/api/public/demo'
 import { Route as ApiPublicEngineSplatRouteImport } from './routes/api/public/engine/$'
 import { Route as ApiPublicJobsMonitorTradesRouteImport } from './routes/api/public/jobs/monitor-trades'
 import { Route as ApiPublicPaymentsInvoiceRouteImport } from './routes/api/public/payments/invoice'
@@ -30,6 +31,11 @@ const SplatRoute = SplatRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDemoRoute = ApiPublicDemoRouteImport.update({
+  id: '/api/public/demo',
+  path: '/api/public/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicEngineSplatRoute = ApiPublicEngineSplatRouteImport.update({
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/api/public/demo': typeof ApiPublicDemoRoute
   '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/api/public/demo': typeof ApiPublicDemoRoute
   '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/api/public/demo': typeof ApiPublicDemoRoute
   '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
   '/api/public/payments/invoice': typeof ApiPublicPaymentsInvoiceRoute
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/api/public/demo'
     | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
     | '/api/public/payments/invoice'
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/api/public/demo'
     | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
     | '/api/public/payments/invoice'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/api/public/demo'
     | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
     | '/api/public/payments/invoice'
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   DashboardRoute: typeof DashboardRoute
+  ApiPublicDemoRoute: typeof ApiPublicDemoRoute
   ApiPublicEngineSplatRoute: typeof ApiPublicEngineSplatRoute
   ApiPublicJobsMonitorTradesRoute: typeof ApiPublicJobsMonitorTradesRoute
   ApiPublicPaymentsInvoiceRoute: typeof ApiPublicPaymentsInvoiceRoute
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/demo': {
+      id: '/api/public/demo'
+      path: '/api/public/demo'
+      fullPath: '/api/public/demo'
+      preLoaderRoute: typeof ApiPublicDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/engine/$': {
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   DashboardRoute: DashboardRoute,
+  ApiPublicDemoRoute: ApiPublicDemoRoute,
   ApiPublicEngineSplatRoute: ApiPublicEngineSplatRoute,
   ApiPublicJobsMonitorTradesRoute: ApiPublicJobsMonitorTradesRoute,
   ApiPublicPaymentsInvoiceRoute: ApiPublicPaymentsInvoiceRoute,

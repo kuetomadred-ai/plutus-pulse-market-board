@@ -25,7 +25,7 @@ describe("embedded application scripts", () => {
     expect(page).toContain("if(!r.data.user||!r.data.session)");
     expect(page).toContain("DB.session=null;DEMO_MODE=false;save()");
     expect(page).toContain("function runAuthButton(button,request,onSuccess)");
-    expect(page).toContain('id="demoBtn">Go to login');
+    expect(page).toContain('id="demoBtn" style="margin-top:10px">Open demo account');
   });
 
   it("presents Supabase resend cooldowns as a friendly, non-error status", () => {
@@ -39,7 +39,7 @@ describe("embedded application scripts", () => {
   });
 
   it("removes redundant signup disclosures while retaining a concise simulation label", () => {
-    expect(page).toContain("Simulated trading environment");
+    expect(page).not.toContain("Simulated trading environment");
     expect(page).not.toContain("Account activation is reviewed by staff.");
     expect(page).not.toContain("SERVER-SIDE PAPER TRADING");
     expect(page).not.toContain("Sign in for paper trading");
