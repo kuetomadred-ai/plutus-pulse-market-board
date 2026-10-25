@@ -498,6 +498,18 @@ html[data-theme="light"] .drow .dots{border-color:#B9C2D4}
 .cprog{background:var(--pn);border:1px solid var(--ln);border-radius:14px;padding:16px;margin:0 14px 12px}
 .cprog .top{display:flex;align-items:center;gap:8px}.cprog .top h3{font-size:16px}
 .cprog .eq{font-family:var(--mono);font-size:27px;font-weight:600;margin:8px 0 2px}
+.dsh{padding:0 14px 90px;animation:dshIn .18s ease-out}@keyframes dshIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.dsh-hero{background:linear-gradient(135deg,var(--pn),var(--bg));border:1px solid var(--ln);border-radius:14px;padding:14px;margin:4px 0 10px}
+.dsh-hero small{color:var(--dim);font-size:10px;letter-spacing:.6px}.dsh-hero .big{font-family:var(--mono);font-size:26px;font-weight:700;margin:4px 0}
+.dsh-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;color:var(--mut)}
+.dsh-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.dsh-card{background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:10px 12px;min-width:0}
+.dsh-card small{display:block;color:var(--dim);font-size:9.5px;letter-spacing:.5px}.dsh-card b{display:block;font-family:var(--mono);font-size:15px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dsh-sec{background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:10px}
+.dsh-sec h5{font-size:11px;letter-spacing:.6px;color:var(--dim);margin:0 0 10px;font-weight:700}
+.dsh-bar{height:7px;border-radius:9px;background:var(--bg);overflow:hidden;margin:6px 0 10px}.dsh-bar i{display:block;height:100%;border-radius:9px}
+.dsh-li{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--ln);font-size:11.5px;font-family:var(--mono)}.dsh-li:last-child{border-bottom:0}
+.dsh-pill{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid currentColor}
 .riskdash{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 14px 12px}
 .riskcard{background:var(--pn);border:1px solid var(--ln);border-radius:11px;padding:10px 11px;min-width:0}
 .riskcard small{display:block;color:var(--dim);font-size:9px;letter-spacing:.5px;margin-bottom:5px}
@@ -776,6 +788,7 @@ html[dir="rtl"] #drawer{border-left:1px solid #292929}
       <section class="screen" id="v-charts"></section>
       <section class="screen" id="v-trade"></section>
       <section class="screen" id="v-hist"></section>
+      <section class="screen" id="v-dash"></section>
       <section class="screen" id="v-messages"></section>
       <section class="screen" id="v-prop"></section>
       <section class="screen" id="v-broker"></section>
@@ -2484,7 +2497,7 @@ function navGo(v){view=v;var app=$('#app');if(app)app.classList.toggle('chartMod
 window.navGo=navGo;
 function renderView(){var u=user();
  if(!u){renderAuth();return}
- var fns={quotes:renderQuotes,charts:openCharts,trade:renderTrade,hist:renderHist,messages:renderMessages,prop:renderProp,broker:renderBroker,profile:renderProfile,admin:renderAdmin};
+ var fns={quotes:renderQuotes,charts:openCharts,trade:renderTrade,hist:renderHist,dash:renderDash,messages:renderMessages,prop:renderProp,broker:renderBroker,profile:renderProfile,admin:renderAdmin};
  var fn=fns[view];
  if(!fn)return;
  try{fn()}catch(e){showErr(e);var el=$('#v-'+view);if(el)el.innerHTML='<div class="empty">This screen failed to render.<br>'+esc(e.message)+'</div>'}
@@ -2507,7 +2520,7 @@ function openDrawer(){var u=user();if(!u)return;
   $('#drawer').classList.add('on');$('#dOvl').classList.add('on');return}
  var a=myAcc(),accountName=a?(a.kind==='PAPER'?'Demo':'Zero'):'Trading account',server=a?'PLUTUS · #'+a.login:'No active account';
  var items=[
-  ['@dash','▦','لوحة التقييم (Dashboard)',''],['charts','⌁','Charts',''],['trade','⇅','Trade',''],['hist','▧','History',''],['messages','✉','Mailbox',''],
+  ['dash','▦','Dashboard',''],['charts','⌁','Charts',''],['trade','⇅','Trade',''],['hist','▧','History',''],['messages','✉','Mailbox',''],
   ['@settings','⚙','Settings',''],['@offers','♟','Prop Firm (Funding)',''],['broker','◇','Broker Account',''],
   ['profile','◉','Profile',''],['@about','ⓘ','About','']];
  $('#drawer').innerHTML='<div class="drawer-account"><div class="drawer-brand"><span class="pmark">P</span><div><strong>PLUTUS</strong><small>MetaTrader 5</small></div></div>'+
@@ -2518,7 +2531,6 @@ function openDrawer(){var u=user();if(!u)return;
  $$('#drawer [data-go]').forEach(function(b){b.onclick=function(){var g=b.getAttribute('data-go');closeDrawer();
   if(g==='@settings'){navGo('charts');setTimeout(function(){try{chartSettings()}catch(e){}},60);return}
   if(g==='@offers'){showOffers();return}
-  if(g==='@dash'){try{(window.top||window).location.href='/dashboard'}catch(e){location.href='/dashboard'}return}
   if(g==='@about'){toast('PLUTUS · MetaTrader 5 style platform · Biquote market data','up');return}
   navGo(g)}});
  var am=$('#drawer [data-act="accounts"]');if(am)am.onclick=function(){closeDrawer();accountsModal()};
@@ -2991,6 +3003,34 @@ function paintTrade(force){var a=myAcc();if(!a||view!=='trade'||!$('#posList'))r
   bindPosButtons(eo)}}
 
 /* HISTORY */
+function renderDash(){var el=$('#v-dash'),a=myAcc();
+ var head='<div class="phead"><button class="pib" onclick="openDrawer()">'+menuSvg()+'</button><b>Dashboard</b><span class="sp"></span><button class="pib" id="dAcc" title="Switch account">'+accSvg()+'</button></div>';
+ if(!a){el.innerHTML=head+'<div class="empty">No active account</div>';return}
+ var M=accMetrics(a),ch=a.ch,init=+a.size||0,eq=M.eq,bal=+a.balance||0,pnl=eq-init,flt=eq-bal;
+ var tgtPct=ch?(+ch.profitPct||0):0,dlPct=ch?(+ch.dailyLossPct||0):(DB.riskRules.dailyLossPct||0),ddPct=ch?(+ch.maxDDPct||0):(DB.riskRules.maxDDPct||0);
+ var tgt=init*tgtPct/100,dayStart=+a.dayStartEq||init,dayLim=dayStart*dlPct/100,dayUsed=Math.max(0,dayStart-eq),ddLim=init*ddPct/100,ddUsed=Math.max(0,init-eq);
+ var deals=DB.history.filter(function(x){return x.accId===a.id}),pos=accPositions(a);
+ var wins=deals.filter(function(x){return x.pnl>0}),loss=deals.filter(function(x){return x.pnl<0});
+ var gw=wins.reduce(function(t,x){return t+x.pnl},0),gl=Math.abs(loss.reduce(function(t,x){return t+x.pnl},0));
+ var days={};deals.forEach(function(x){days[new Date(x.closedAt).toISOString().slice(0,10)]=1});
+ var best=deals.reduce(function(m,x){return Math.max(m,x.pnl)},0),worst=deals.reduce(function(m,x){return Math.min(m,x.pnl)},0);
+ function col(v){return v>=0?'var(--up)':'var(--dn)'}
+ function bar(lbl,used,lim,c){var p=lim>0?Math.max(0,Math.min(100,used/lim*100)):0;return'<div class="dsh-row"><span>'+lbl+'</span><span>'+money(Math.max(0,used))+' / '+money(lim)+'</span></div><div class="dsh-bar"><i style="width:'+p+'%;background:'+c+'"></i></div>'}
+ var st=ch?ch.status:a.status,stc=/BREACH|FAIL/.test(st)?'var(--dn)':/PASS|FUND/.test(st)?'var(--up)':'var(--ac)';
+ var h=head+'<div class="dsh">'+
+ '<div class="dsh-hero"><div class="dsh-row"><small>'+(a.kind==='PAPER'?'DEMO':'EVALUATION')+(ch&&ch.phase?' · PHASE '+ch.phase+(ch.phaseCount?' / '+ch.phaseCount:''):'')+' · #'+esc(String(a.login))+'</small><span class="dsh-pill" style="color:'+stc+'">'+esc(st||'ACTIVE')+'</span></div>'+
+ '<div class="big">'+money(eq)+'</div><div class="dsh-row"><span>Equity · 1:'+(+a.leverage||100)+'</span><b style="color:'+col(pnl)+';font-family:var(--mono)">'+(pnl>=0?'+':'')+money(pnl)+' ('+(init?(pnl/init*100).toFixed(2):'0.00')+'%)</b></div></div>'+
+ '<div class="dsh-grid">'+
+  [['BALANCE',money(bal),''],['FLOATING P/L',money(flt),col(flt)],['TODAY P/L',money(M.dailyPL),col(M.dailyPL)],['FREE MARGIN',money(M.free),''],
+   ['TO TARGET',tgt?money(Math.max(0,tgt-pnl)):'—',''],['MARGIN LEVEL',M.um>0?M.ml.toFixed(0)+'%':'—',''],
+   ['WIN RATE',deals.length?(wins.length/deals.length*100).toFixed(0)+'%':'—',''],['PROFIT FACTOR',gl>0?(gw/gl).toFixed(2):(gw>0?'∞':'—'),''],
+   ['TRADES',String(deals.length),''],['TRADING DAYS',String(Object.keys(days).length),''],
+   ['BEST TRADE',money(best),'var(--up)'],['WORST TRADE',money(worst),'var(--dn)']].map(function(c){return'<div class="dsh-card"><small>'+c[0]+'</small><b'+(c[2]?' style="color:'+c[2]+'"':'')+'>'+c[1]+'</b></div>'}).join('')+'</div>'+
+ '<div class="dsh-sec"><h5>OBJECTIVES</h5>'+(tgt?bar('Profit target '+tgtPct+'%',pnl,tgt,'var(--up)'):'')+(dlPct?bar('Daily loss limit '+dlPct+'%',dayUsed,dayLim,'var(--dn)'):'')+(ddPct?bar('Max drawdown '+ddPct+'%',ddUsed,ddLim,'var(--dn)'):'')+'</div>'+
+ '<div class="dsh-sec"><h5>OPEN POSITIONS ('+pos.length+')</h5>'+(pos.length?pos.map(function(p){return'<div class="dsh-li"><span>'+esc(p.symbol)+' '+esc(String(p.side).toUpperCase())+' '+(+p.lots).toFixed(2)+'</span><span>'+esc(String(p.entry))+'</span></div>'}).join(''):'<div class="empty" style="padding:8px">No open positions</div>')+'</div>'+
+ '<div class="dsh-sec"><h5>RECENT TRADES</h5>'+(deals.length?deals.slice(0,15).map(function(x){return'<div class="dsh-li"><span>'+esc(x.symbol)+' '+esc(String(x.side).toUpperCase())+' '+(+x.lots).toFixed(2)+'</span><b style="color:'+col(x.pnl)+'">'+(x.pnl>=0?'+':'')+(+x.pnl).toFixed(2)+'</b></div>'}).join(''):'<div class="empty" style="padding:8px">No closed trades yet</div>')+'</div>'+
+ '</div>';
+ el.innerHTML=h;$('#dAcc').onclick=accountsModal}
 function renderHist(){var el=$('#v-hist'),a=myAcc();
  var html='<div class="phead">'+
  '<button class="pib" onclick="openDrawer()">'+menuSvg()+'</button><b>History</b><span class="sp"></span>'+
