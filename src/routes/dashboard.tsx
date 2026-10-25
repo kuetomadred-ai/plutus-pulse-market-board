@@ -119,6 +119,7 @@ function Dashboard() {
           </div>
           <div className="flex gap-2">
             <span className="rounded-full border px-3 py-1 text-sm font-bold">{acc.challenge_status}</span>
+            <a href="/" className="rounded border px-3 py-1 text-sm">العودة للتداول</a>
             <button className="rounded border px-3 py-1 text-sm" onClick={() => supabase.auth.signOut()}>خروج</button>
           </div>
         </header>
