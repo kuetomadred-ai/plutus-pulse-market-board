@@ -1,0 +1,4 @@
+project_id = "mgfntaxuihljsvlgmfro"
+
+[functions.engine-worker]
+verify_jwt = false
