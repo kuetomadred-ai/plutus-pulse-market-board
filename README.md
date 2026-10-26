@@ -24,3 +24,7 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Background engine
+
+Trading state is stored server-side in Supabase and does not depend on the app staying open. For free scheduled processing of pending orders, SL/TP, and risk checks between sessions, deploy the `supabase/functions/engine-worker` Edge Function and schedule it with `pg_cron`; see [docs/BACKGROUND_ENGINE.md](docs/BACKGROUND_ENGINE.md). The backend WebSocket worker remains optional for lower-latency quote processing.
