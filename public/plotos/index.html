@@ -930,7 +930,7 @@ function freshDB(){return{
   commissionPerLot:3,consistencyPct:40,maxPosPct:50,weekendHold:false,payoutSplit:80,requireKYC:false,requireTerms:false},
  accounts:[],positions:[],orders:[],history:[],notifications:[],audit:[],payouts:[],chRequests:[],alerts:[],wallets:{},
  settings:{theme:'dark',lang:'en',
-  sbUrl:'https://c--54126d39-5659-4b36-87a8-0df734663018-prod.lovable.cloud',sbKey:'sb_publishable_L9gQEsjwTvTuy00yrE8IJQ_C-sHU656',
+  sbUrl:window.PLUTUS_SUPABASE_URL||'',sbKey:window.PLUTUS_SUPABASE_PUBLISHABLE_KEY||'',
   paymentOn:false,paymentInfo:'Contact the manager to complete payment, then your account will be activated.',lastSym:'XAUUSD',lastTf:'1m',favorites:[],watchlist:null,oscH:140,
   ind:{ema20:false,ema50:false,ema200:false,sma200:false,wma20:false,bb:false,vwap:false,don:false,psar:false,ichi:false,mom:false,cci:false,adx:false,rsi:false,stoch:false,macd:false,atr:false},
    drawings:{},priceMargins:null,chart:{ohlc:false,dataWindow:false,volumes:false,tradePositions:true,tradeOrders:true,tradeHistory:true,grid:true,profitLoss:true,slTp:true,periodSeparators:false,askLine:true,lastPriceLine:true,oneClickPanel:true,countdown:false,freeMove:false,radialTap:true}}
