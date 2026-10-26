@@ -2174,7 +2174,7 @@ function chartRiskLevelValid(p,kind,price,q){
 function paintChartLevelHint(){var el=$('#chartLevelHint');if(!el)return;var req=chart.levelPlacement;
  var p=req&&DB.positions.find(function(x){return x.id===req.posId});
  if(view!=='charts'||!p||p.symbol!==chart.sym){el.classList.remove('on');return}
- el.innerHTML='<span>DRAG TO SET '+req.kind.toUpperCase()+' · '+esc(p.symbol+' '+p.side.toUpperCase()+' '+p.lots)+'</span><button type="button" id="chartLevelCancel">CANCEL</button>';
+ el.innerHTML='<span>DRAG FREELY · RELEASE ON VALID SIDE TO SAVE '+req.kind.toUpperCase()+' · '+esc(p.symbol+' '+p.side.toUpperCase()+' '+p.lots)+'</span><button type="button" id="chartLevelCancel">CANCEL</button>';
  el.classList.add('on');var b=$('#chartLevelCancel');if(b)b.onclick=function(e){e.stopPropagation();cancelChartLevelPlacement()}}
 function cancelChartLevelPlacement(){chart.levelPlacement=null;paintChartLevelHint();toast('Level placement cancelled','')}
 function armChartLevelPlacement(p,kind){var a=myAcc();if(!p||!a||p.accId!==a.id||(kind!=='sl'&&kind!=='tp'))return;
@@ -2184,8 +2184,7 @@ function beginChartLevelDrag(cv,e,xy){var req=chart.levelPlacement;if(!req||!cha
  var a=myAcc(),p=a&&DB.positions.find(function(x){return x.id===req.posId&&x.accId===a.id});
  if(!p||p.symbol!==chart.sym){chart.levelPlacement=null;paintChartLevelHint();toast('Position is no longer available','dn');return}
  var S=SYMBOLS[p.symbol],raw=chart.cs.coordinateToPrice(xy.y);if(raw==null)return;var pr=+raw.toFixed(S.digits);
- if(!chartRiskLevelValid(p,req.kind,pr,Q[p.symbol])){var rel=req.kind==='sl'?(p.side==='buy'?'below Bid':'above Ask'):(p.side==='buy'?'above Bid':'below Ask');toast(req.kind.toUpperCase()+' must be '+rel,'dn');return}
- chart.levelPlacement=null;paintChartLevelHint();DRAG={pos:p,kind:req.kind,original:{sl:p.sl,tp:p.tp},creating:!p[req.kind],moved:true};p[req.kind]=pr;
+ chart.levelPlacement=null;paintChartLevelHint();DRAG={pos:p,kind:req.kind,original:{sl:p.sl,tp:p.tp},creating:!p[req.kind],candidate:pr,valid:chartRiskLevelValid(p,req.kind,pr,Q[p.symbol]),moved:true};
  chart.c.applyOptions({handleScroll:false,handleScale:false});try{cv.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();e.stopPropagation();dragLineMove(xy)}
 function lineDragStart(cv,e,xy){
  var y=xy.y;

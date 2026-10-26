@@ -9,6 +9,7 @@ describe("chart SL/TP drag contract", () => {
     expect(html).toContain("bd=touch?38:24");
     expect(html).toContain("level-dragging");
     expect(html).toContain("chart-drag-pill.invalid");
+    expect(html).toContain("candidate:pr,valid:chartRiskLevelValid");
   });
 
   it("keeps preview values separate from the persisted position until release", () => {
@@ -21,5 +22,6 @@ describe("chart SL/TP drag contract", () => {
     expect(html).toContain("toast('Saving '+moved.kind.toUpperCase()+'…','')");
     expect(html).toContain("pos.sl=oldSl;pos.tp=oldTp");
     expect(html).toContain("TradingProvider.modifyPosition(pos,nextSl,nextTp,pos.ts)");
+    expect(html).not.toContain("var rel=req.kind==='sl'");
   });
 });
