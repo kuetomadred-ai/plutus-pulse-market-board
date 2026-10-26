@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DisclaimerRouteImport } from './routes/disclaimer'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiPublicDemoRouteImport } from './routes/api/public/demo'
 import { Route as ApiPublicEngineSplatRouteImport } from './routes/api/public/engine/$'
 import { Route as ApiPublicJobsMonitorTradesRouteImport } from './routes/api/public/jobs/monitor-trades'
@@ -31,6 +34,21 @@ const SplatRoute = SplatRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DisclaimerRoute = DisclaimerRouteImport.update({
+  id: '/disclaimer',
+  path: '/disclaimer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicDemoRoute = ApiPublicDemoRouteImport.update({
@@ -66,6 +84,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/disclaimer': typeof DisclaimerRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/api/public/demo': typeof ApiPublicDemoRoute
   '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
@@ -76,6 +97,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/disclaimer': typeof DisclaimerRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/api/public/demo': typeof ApiPublicDemoRoute
   '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
@@ -87,6 +111,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
   '/dashboard': typeof DashboardRoute
+  '/disclaimer': typeof DisclaimerRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/api/public/demo': typeof ApiPublicDemoRoute
   '/api/public/engine/$': typeof ApiPublicEngineSplatRoute
   '/api/public/jobs/monitor-trades': typeof ApiPublicJobsMonitorTradesRoute
@@ -99,6 +126,9 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/disclaimer'
+    | '/privacy'
+    | '/terms'
     | '/api/public/demo'
     | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
@@ -109,6 +139,9 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/disclaimer'
+    | '/privacy'
+    | '/terms'
     | '/api/public/demo'
     | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
@@ -119,6 +152,9 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/dashboard'
+    | '/disclaimer'
+    | '/privacy'
+    | '/terms'
     | '/api/public/demo'
     | '/api/public/engine/$'
     | '/api/public/jobs/monitor-trades'
@@ -130,6 +166,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
   DashboardRoute: typeof DashboardRoute
+  DisclaimerRoute: typeof DisclaimerRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   ApiPublicDemoRoute: typeof ApiPublicDemoRoute
   ApiPublicEngineSplatRoute: typeof ApiPublicEngineSplatRoute
   ApiPublicJobsMonitorTradesRoute: typeof ApiPublicJobsMonitorTradesRoute
@@ -158,6 +197,27 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/disclaimer': {
+      id: '/disclaimer'
+      path: '/disclaimer'
+      fullPath: '/disclaimer'
+      preLoaderRoute: typeof DisclaimerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/demo': {
@@ -202,6 +262,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
   DashboardRoute: DashboardRoute,
+  DisclaimerRoute: DisclaimerRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   ApiPublicDemoRoute: ApiPublicDemoRoute,
   ApiPublicEngineSplatRoute: ApiPublicEngineSplatRoute,
   ApiPublicJobsMonitorTradesRoute: ApiPublicJobsMonitorTradesRoute,

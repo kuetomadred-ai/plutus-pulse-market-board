@@ -1,4 +1,3 @@
-// @ts-nocheck -- loose row shapes from engine tables
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +7,10 @@ export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
       { title: "لوحة التقييم | PLUTUS" },
-      { name: "description", content: "تقدم تقييم المرحلتين، الأرباح والخسائر وحدود المخاطر لحسابك." },
+      {
+        name: "description",
+        content: "تقدم تقييم المرحلتين، الأرباح والخسائر وحدود المخاطر لحسابك.",
+      },
       { property: "og:title", content: "لوحة التقييم | PLUTUS" },
       { property: "og:description", content: "تقدم التقييم والأرباح والخسائر وحدود المخاطر." },
       { property: "og:type", content: "website" },
@@ -18,8 +20,35 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Acc = any;
+type EngineAccount = {
+  id: string;
+  phase?: number | string;
+  initial_balance: number | string;
+  balance: number | string;
+  profit_target_pct?: number | string | null;
+  daily_loss_pct?: number | string | null;
+  max_dd_pct?: number | string | null;
+  day_start_balance?: number | string | null;
+  min_equity?: number | string | null;
+  leverage: number | string;
+  challenge_status?: string | null;
+  status?: string | null;
+  fail_reason?: string | null;
+};
+type EnginePosition = {
+  id: string;
+  symbol: string;
+  side: string;
+  lots: number | string;
+  entry_price: number | string;
+};
+type EngineTrade = {
+  id: string;
+  symbol: string;
+  close_reason: string;
+  realized_pnl: number | string;
+  closed_at: string;
+};
 const $ = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 function Bar({ v, tone }: { v: number; tone: string }) {
@@ -44,19 +73,32 @@ function Login() {
       }}
     >
       <h1 className="text-xl font-bold">دخول لوحة التقييم</h1>
-      <input className="w-full rounded border bg-background p-2" placeholder="البريد" value={email} onChange={(e) => setEmail(e.target.value)} />
-      <input className="w-full rounded border bg-background p-2" type="password" placeholder="كلمة المرور" value={pw} onChange={(e) => setPw(e.target.value)} />
+      <input
+        className="w-full rounded border bg-background p-2"
+        placeholder="البريد"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        className="w-full rounded border bg-background p-2"
+        type="password"
+        placeholder="كلمة المرور"
+        value={pw}
+        onChange={(e) => setPw(e.target.value)}
+      />
       {err && <p className="text-sm text-destructive">{err}</p>}
-      <button className="w-full rounded bg-primary p-2 font-bold text-primary-foreground">دخول</button>
+      <button className="w-full rounded bg-primary p-2 font-bold text-primary-foreground">
+        دخول
+      </button>
     </form>
   );
 }
 
 function Dashboard() {
   const [uid, setUid] = useState<string | null | undefined>(undefined);
-  const [acc, setAcc] = useState<Acc | null>(null);
-  const [open, setOpen] = useState<Acc[]>([]);
-  const [hist, setHist] = useState<Acc[]>([]);
+  const [acc, setAcc] = useState<EngineAccount | null>(null);
+  const [open, setOpen] = useState<EnginePosition[]>([]);
+  const [hist, setHist] = useState<EngineTrade[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUid(data.user?.id ?? null));
@@ -67,12 +109,28 @@ function Dashboard() {
   useEffect(() => {
     if (!uid) return;
     const load = async () => {
-      const a = await supabase.from("pf_engine_accounts").select("*").eq("user_id", uid).limit(1).maybeSingle();
-      setAcc(a.data);
+      const a = await supabase
+        .from("pf_engine_accounts")
+        .select("*")
+        .eq("user_id", uid)
+        .limit(1)
+        .maybeSingle<EngineAccount>();
+      setAcc(a.data ?? null);
       if (!a.data) return;
       const [p, h] = await Promise.all([
-        supabase.from("pf_engine_positions").select("*").eq("account_id", a.data.id).eq("status", "OPEN"),
-        supabase.from("pf_engine_trades_history").select("*").eq("account_id", a.data.id).order("closed_at", { ascending: false }).limit(20),
+        supabase
+          .from("pf_engine_positions")
+          .select("id,symbol,side,lots,entry_price")
+          .eq("account_id", a.data.id)
+          .eq("status", "OPEN")
+          .returns<EnginePosition[]>(),
+        supabase
+          .from("pf_engine_trades_history")
+          .select("id,symbol,close_reason,realized_pnl,closed_at")
+          .eq("account_id", a.data.id)
+          .order("closed_at", { ascending: false })
+          .limit(20)
+          .returns<EngineTrade[]>(),
       ]);
       setOpen(p.data ?? []);
       setHist(h.data ?? []);
@@ -83,8 +141,18 @@ function Dashboard() {
   }, [uid]);
 
   if (uid === undefined) return <div className="p-8 text-center">...</div>;
-  if (!uid) return <div dir="rtl" className="min-h-screen bg-background p-4 text-foreground"><Login /></div>;
-  if (!acc) return <div dir="rtl" className="p-8 text-center">لا يوجد حساب تقييم مرتبط.</div>;
+  if (!uid)
+    return (
+      <div dir="rtl" className="min-h-screen bg-background p-4 text-foreground">
+        <Login />
+      </div>
+    );
+  if (!acc)
+    return (
+      <div dir="rtl" className="p-8 text-center">
+        لا يوجد حساب تقييم مرتبط.
+      </div>
+    );
 
   const init = Number(acc.initial_balance);
   const bal = Number(acc.balance);
@@ -115,15 +183,30 @@ function Dashboard() {
         <header className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold">تقييم المرحلتين — المرحلة {acc.phase}</h1>
-            <p className="text-sm text-muted-foreground">حساب #{acc.id} · رافعة 1:{Number(acc.leverage)} · مراقبة 24/7</p>
+            <p className="text-sm text-muted-foreground">
+              حساب #{acc.id} · رافعة 1:{Number(acc.leverage)} · مراقبة 24/7
+            </p>
           </div>
           <div className="flex gap-2">
-            <span className="rounded-full border px-3 py-1 text-sm font-bold">{acc.challenge_status}</span>
-            <a href="/" className="rounded border px-3 py-1 text-sm">العودة للتداول</a>
-            <button className="rounded border px-3 py-1 text-sm" onClick={() => supabase.auth.signOut()}>خروج</button>
+            <span className="rounded-full border px-3 py-1 text-sm font-bold">
+              {acc.challenge_status}
+            </span>
+            <a href="/" className="rounded border px-3 py-1 text-sm">
+              العودة للتداول
+            </a>
+            <button
+              className="rounded border px-3 py-1 text-sm"
+              onClick={() => supabase.auth.signOut()}
+            >
+              خروج
+            </button>
           </div>
         </header>
-        {acc.fail_reason && <p className="rounded border border-destructive p-3 text-destructive">سبب الإيقاف: {acc.fail_reason}</p>}
+        {acc.fail_reason && (
+          <p className="rounded border border-destructive p-3 text-destructive">
+            سبب الإيقاف: {acc.fail_reason}
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {cards.map(([k, v]) => (
@@ -141,7 +224,12 @@ function Dashboard() {
             ["التراجع الكلي", ddUsed, maxDD, "bg-destructive"],
           ].map(([k, used, lim, tone]) => (
             <div key={k as string} className="space-y-2 rounded-xl border bg-card p-4">
-              <div className="flex justify-between text-sm"><span>{k as string}</span><span>{$(Math.max(0, used as number))} / {$(lim as number)}</span></div>
+              <div className="flex justify-between text-sm">
+                <span>{k as string}</span>
+                <span>
+                  {$(Math.max(0, used as number))} / {$(lim as number)}
+                </span>
+              </div>
               <Bar v={((used as number) / (lim as number)) * 100} tone={tone as string} />
             </div>
           ))}
@@ -151,7 +239,9 @@ function Dashboard() {
           <h2 className="mb-2 font-bold">أهداف التقييم</h2>
           {rules.map(([k, v, s]) => (
             <div key={k} className="flex justify-between border-b py-2 text-sm last:border-0">
-              <span>{k}</span><span>{v}</span><span className="font-bold">{s}</span>
+              <span>{k}</span>
+              <span>{v}</span>
+              <span className="font-bold">{s}</span>
             </div>
           ))}
         </section>
@@ -160,7 +250,10 @@ function Dashboard() {
           <h2 className="mb-2 font-bold">الصفقات المفتوحة ({open.length})</h2>
           {open.map((p) => (
             <div key={p.id} className="flex justify-between border-b py-1 text-sm">
-              <span>{p.symbol}</span><span>{p.side}</span><span>{p.lots}</span><span>{p.entry_price}</span>
+              <span>{p.symbol}</span>
+              <span>{p.side}</span>
+              <span>{p.lots}</span>
+              <span>{p.entry_price}</span>
             </div>
           ))}
         </section>
@@ -169,8 +262,11 @@ function Dashboard() {
           <h2 className="mb-2 font-bold">الصفقات المغلقة</h2>
           {hist.map((h) => (
             <div key={h.id} className="flex justify-between border-b py-1 text-sm">
-              <span>{h.symbol}</span><span>{h.close_reason}</span>
-              <span className={Number(h.realized_pnl) >= 0 ? "text-primary" : "text-destructive"}>{$(Number(h.realized_pnl))}</span>
+              <span>{h.symbol}</span>
+              <span>{h.close_reason}</span>
+              <span className={Number(h.realized_pnl) >= 0 ? "text-primary" : "text-destructive"}>
+                {$(Number(h.realized_pnl))}
+              </span>
             </div>
           ))}
         </section>
