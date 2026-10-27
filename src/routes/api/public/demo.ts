@@ -39,6 +39,11 @@ export const Route = createFileRoute("/api/public/demo")({
             userId = data.user.id;
           }
           if (!userId) throw new Error("Demo identity is unavailable");
+          const { data: link } = await supabaseAdmin.auth.admin.generateLink({
+            type: "magiclink",
+            email,
+          });
+          const tokenHash = link?.properties?.hashed_token || "";
 
           const { data: account, error: accountError } = await supabaseAdmin
             .from("pf_engine_accounts")
@@ -48,7 +53,7 @@ export const Route = createFileRoute("/api/public/demo")({
           if (accountError) throw new Error("Could not read demo account");
           if (account)
             return Response.json(
-              { email, password, login: account.id, persistent: true, paper: true },
+              { email, password, tokenHash, login: account.id, persistent: true, paper: true },
               { headers },
             );
 
@@ -75,7 +80,7 @@ export const Route = createFileRoute("/api/public/demo")({
           }
           if (!accountId) throw new Error("Could not create demo account");
           return Response.json(
-            { email, password, login: accountId, persistent: true, paper: true },
+            { email, password, tokenHash, login: accountId, persistent: true, paper: true },
             { headers },
           );
         } catch (error) {

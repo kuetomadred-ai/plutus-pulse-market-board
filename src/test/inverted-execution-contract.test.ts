@@ -29,7 +29,7 @@ describe("inverted educational execution contract", () => {
     expect(page).toContain(
       "function tradePrice(sym,side,q){q=q||qt(sym);if(!q||!(q.bid>0))return 0;return side==='buy'?(q.bid||q.ask):(q.ask||q.bid)}",
     );
-    expect(page).toContain("function useLocal(){return !ENGINE.base}");
+    expect(page).toContain("function useLocal(){return !canTradeServer()}");
   });
 
   it("reuses the same demo identity and account across device sessions", () => {

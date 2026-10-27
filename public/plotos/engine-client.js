@@ -21,9 +21,15 @@
 
   function request(apiBase, supabase, path, body) {
     if (!apiBase) {
-      return Promise.reject(new Error("Trading API URL is not configured; trading is disabled."));
+      var unavailable = new Error("Trading API URL is not configured; trading is disabled.");
+      unavailable.retryable = true;
+      return Promise.reject(unavailable);
     }
-    if (!supabase) return Promise.reject(new Error("Authentication is unavailable."));
+    if (!supabase) {
+      var unauthenticated = new Error("Authentication is unavailable.");
+      unauthenticated.retryable = true;
+      return Promise.reject(unauthenticated);
+    }
     return supabase.auth
       .getSession()
       .then(function (result) {
@@ -38,6 +44,10 @@
           body: body ? JSON.stringify(body) : undefined,
           credentials: "omit",
         });
+      })
+      .catch(function (error) {
+        if (error && !error.retryable) error.retryable = true;
+        throw error;
       })
       .then(function (response) {
         return response

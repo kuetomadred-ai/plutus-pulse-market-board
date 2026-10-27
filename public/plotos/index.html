@@ -951,9 +951,10 @@ var svT=null,clT=null;
 function savePrefs(){try{localStorage.setItem('plotos_prefs',JSON.stringify({theme:DB.settings.theme,lang:DB.settings.lang,lastSym:DB.settings.lastSym,lastTf:DB.settings.lastTf,favorites:DB.settings.favorites,watchlist:DB.settings.watchlist,ind:DB.settings.ind,oscH:DB.settings.oscH,drawings:DB.settings.drawings,priceMargins:DB.settings.priceMargins,chart:DB.settings.chart}))}catch(e){}}
 var TRK=['accounts','positions','orders','history'];
 function tradeKey(uid){return'plutus_trades_v1_'+uid}
-function saveLocalTrades(){var u=user();if(!u||PORTAL_ADMIN)return;var o={ts:Date.now()};TRK.forEach(function(k){o[k]=DB[k].filter(function(x){return x.userId===u.id})});try{localStorage.setItem(tradeKey(u.id),JSON.stringify(o))}catch(e){}}
+var PAPER_STATE_KEY='plutus_paper_state_v1';
+function saveLocalTrades(){var u=user();if(!u||PORTAL_ADMIN)return;var o={version:1,ts:Date.now(),userId:u.id};TRK.forEach(function(k){o[k]=DB[k].filter(function(x){return x.userId===u.id})});try{localStorage.setItem(tradeKey(u.id),JSON.stringify(o));localStorage.setItem(PAPER_STATE_KEY,JSON.stringify(o))}catch(e){}}
 function mergeTrades(uid,b){TRK.forEach(function(k){if(Array.isArray(b[k]))DB[k]=DB[k].filter(function(x){return x.userId!==uid}).concat(b[k])})}
-function loadLocalTrades(uid){if(!uid||PORTAL_ADMIN)return;try{var b=JSON.parse(localStorage.getItem(tradeKey(uid))||'null');if(b)mergeTrades(uid,b)}catch(e){}}
+function loadLocalTrades(uid){if(!uid||PORTAL_ADMIN)return;try{var raw=localStorage.getItem(tradeKey(uid));if(!raw){var shared=JSON.parse(localStorage.getItem(PAPER_STATE_KEY)||'null');if(shared&&shared.userId===uid)raw=JSON.stringify(shared)}var b=raw?JSON.parse(raw):null;if(b)mergeTrades(uid,b)}catch(e){}}
 function save(){savePrefs();saveLocalTrades();CLOUD.lastLocal=Date.now();if(DEMO_MODE)return Promise.resolve(true);if(!PORTAL_ADMIN){if(CLOUD.ok&&CLOUD.hydrated&&user()){clearTimeout(clT);clT=setTimeout(function(){cloudPushAux().catch(function(e){CLOUD.lastError=e})},300)}return Promise.resolve(ENGINE.online)}clearTimeout(svT);clearTimeout(clT);
  if(!CLOUD.ok||!CLOUD.hydrated){CLOUD.pending=true;return Promise.resolve(false)}
  clT=setTimeout(function(){cloudPush().catch(function(e){CLOUD.lastError=e;CLOUD.online=false})},150);
@@ -1203,11 +1204,14 @@ function finishNativeAuthLink(rawUrl){
 window.addEventListener('plutus:native-url',function(e){finishNativeAuthLink(e.detail)});
 function enterDemo(){
  if(PORTAL_ADMIN){toast('Demo trading login is available from the Trading Portal only','dn');return}
- var K='plutus_demo_device_v1',cred=null;try{cred=JSON.parse(localStorage.getItem(K)||'null')}catch(e){}
- function create(){var id=(crypto.randomUUID?crypto.randomUUID():'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,function(c){return(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)}));
-  return fetch('/api/public/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:id})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.email)throw new Error(j.error||'Demo unavailable');cred={email:j.email,password:j.password};localStorage.setItem(K,JSON.stringify(cred));return cred})})}
+ var K='plutus_demo_device_v1',DK='plutus_demo_device_id_v1',cred=null,deviceId=null;try{cred=JSON.parse(localStorage.getItem(K)||'null');deviceId=localStorage.getItem(DK)}catch(e){}
+ if(!deviceId)deviceId=crypto.randomUUID?crypto.randomUUID():'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,function(c){return(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)});
+ try{localStorage.setItem(DK,deviceId)}catch(e){}
+ function create(){var id=deviceId;
+  return fetch('/api/public/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:id})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.email)throw new Error(j.error||'Demo unavailable');cred={email:j.email,password:j.password,tokenHash:j.tokenHash||''};localStorage.setItem(K,JSON.stringify(cred));return cred})})}
+ function demoSession(c){if(!c.tokenHash)return doLogin(c.email,c.password);if(!CLOUD.ok||!CLOUD.hydrated)return cloudInit().then(function(){return demoSession(c)});return CLOUD.sb.auth.verifyOtp({token_hash:c.tokenHash,type:'magiclink'}).then(function(r){if(r.error)throw r.error;var au=r.data&&r.data.user;if(!au)throw new Error('Demo session unavailable');CLOUD.authRole=(au.app_metadata&&au.app_metadata.role)||null;var u=upsertAuthProfile(au);DB.session=u.id;DEMO_MODE=false;return cloudPull().then(function(){save();return ENGINE.ready?null:'Trading accounts could not be loaded. Please retry.'})})}
  toast('Opening your demo account…','up');
- (cred?Promise.resolve(cred):create()).then(function(c){return doLogin(c.email,c.password).then(function(err){if(err&&/credentials/i.test(err)){localStorage.removeItem(K);return create().then(function(c2){return doLogin(c2.email,c2.password)})}return err})})
+ (cred?Promise.resolve(cred):create()).then(function(c){return demoSession(c).then(function(err){if(err&&/credentials|session/i.test(err)){localStorage.removeItem(K);return create().then(function(c2){return demoSession(c2)})}return err})})
   .then(function(err){if(err)throw new Error(err);enterApp(false)})
   .catch(function(e){if(cred&&/Invalid login/i.test(String(e&&e.message))){localStorage.removeItem(K)}enterLocalDemo()})}
 window.enterDemo=enterDemo;
@@ -1589,6 +1593,8 @@ function histFiltered(f){var h=DB.history.filter(function(x){return user()&&x.us
  if(f==='all')return h;var now=Date.now(),ms={today:864e5,week:6048e5,month:2592e6}[f];
  return h.filter(function(x){return now-x.closedAt<=ms})}
 function cloudReady(){return CLOUD.ok&&CLOUD.hydrated&&ENGINE.online&&ENGINE.ready}
+function canTradeServer(){return Boolean(ENGINE.base&&cloudReady()&&!DEMO_MODE&&myAcc())}
+function localFallbackResult(r){if(!r||r.err)throw new Error((r&&r.err)||'Local paper order failed');return{p:r.p||null,o:r.o||null,fill:r.p&&r.p.entry}}
 var TradingProvider={
 	 name:'PLUTUS Paper Engine v1',
  getSymbols:function(){return SYIDS},
@@ -1596,16 +1602,16 @@ var TradingProvider={
  getAccount:function(){return myAcc()},
  getPositions:function(){var a=myAcc();return a?accPositions(a):[]},
  getOrders:function(){var a=myAcc();return a?accOrders(a):[]},
-	 place:function(sym,side,lots,type,price,sl,tp){var a=myAcc();if(!cloudReady())return Promise.reject(new Error('Trading API is offline or not configured.'));if(!a)return Promise.reject(new Error('No server trading account.'));return engineRequest('/v1/orders',{accountId:a.id,requestId:engineUuid(),symbol:sym,side:side,type:type,lots:lots,price:type==='MARKET'?undefined:price,stopLoss:sl||undefined,takeProfit:tp||undefined}).then(function(r){return engineRefresh().then(function(){var p=r.position&&DB.positions.find(function(x){return x.id===r.position.id});return{p:p||null,o:r.order,fill:r.fill_price}})})},
-	 close:function(p,reason){if(!cloudReady())return Promise.resolve(false);var hl=holdLeftSec(p);if(hl>0&&(reason||'market')==='market'){toast('Minimum hold 1 minute — wait '+hl+'s','wn');return Promise.resolve(false)}return engineRequest('/v1/positions/'+encodeURIComponent(p.id)+'/close',{requestId:engineUuid()}).then(function(){return engineRefresh()}).then(function(){return true}).catch(function(e){toast(e.message||'Position close failed','dn');return false})},
-	 closePartial:function(p,lots){if(!cloudReady())return Promise.reject(new Error('Trading API is offline.'));return engineRequest('/v1/positions/'+encodeURIComponent(p.id)+'/close-partial',{requestId:engineUuid(),lots:lots}).then(function(r){return engineRefresh().then(function(){return{ok:true,pnl:+r.pnl||0}})})},
-	 closeAll:function(){var ps=this.getPositions().slice();if(!cloudReady())return Promise.resolve(false);return ps.reduce(function(chain,p){return chain.then(function(allOk){if(holdLeftSec(p)>0)return false;return engineRequest('/v1/positions/'+encodeURIComponent(p.id)+'/close',{requestId:engineUuid()}).then(function(){return allOk}).catch(function(e){toast(e.message||'A position could not be closed','dn');return false})})},Promise.resolve(true)).then(function(allOk){return engineRefresh().then(function(){return allOk})})},
-	 modifyPosition:function(p,sl,tp,ts){if(!cloudReady())return Promise.resolve(false);if(ts){toast('Trailing stops are not supported by the server engine yet','wn');return Promise.resolve(false)}return engineRequest('/v1/positions/'+encodeURIComponent(p.id)+'/protection',{stopLoss:sl||null,takeProfit:tp||null}).then(function(){return engineRefresh()}).catch(function(e){toast(e.message||'Position update failed','dn');return false})},
-	 modifyOrder:function(o,price,sl,tp){if(!cloudReady())return Promise.resolve(false);return engineRequest('/v1/orders/'+encodeURIComponent(o.id)+'/modify',{price:price,stopLoss:sl||null,takeProfit:tp||null}).then(function(){return engineRefresh()}).catch(function(e){toast(e.message||'Order update failed','dn');return false})},
-	 cancelOrder:function(o){if(!cloudReady())return Promise.resolve(false);return engineRequest('/v1/orders/'+encodeURIComponent(o.id)+'/cancel',{}).then(function(){return engineRefresh()}).catch(function(e){toast(e.message||'Order cancellation failed','dn');return false})}
-};
-function localReady(){return DEMO_MODE||(CLOUD.ok&&CLOUD.hydrated)}
-function useLocal(){return !ENGINE.base}
+		 place:function(sym,side,lots,type,price,sl,tp){var a=myAcc();if(!canTradeServer())return Promise.resolve(localFallbackResult(LocalProvider.place(sym,side,lots,type,price,sl,tp)));return engineRequest('/v1/orders',{accountId:a.id,requestId:engineUuid(),symbol:sym,side:side,type:type,lots:lots,price:type==='MARKET'?undefined:price,stopLoss:sl||undefined,takeProfit:tp||undefined}).then(function(r){return engineRefresh().then(function(){var p=r.position&&DB.positions.find(function(x){return x.id===r.position.id});return{p:p||null,o:r.order,fill:r.fill_price}})}).catch(function(e){if(!e||!e.retryable)throw e;return localFallbackResult(LocalProvider.place(sym,side,lots,type,price,sl,tp))})},
+		 close:function(p,reason){if(!canTradeServer())return Promise.resolve(LocalProvider.close(p,reason));var hl=holdLeftSec(p);if(hl>0&&(reason||'market')==='market'){toast('Minimum hold 1 minute — wait '+hl+'s','wn');return Promise.resolve(false)}return engineRequest('/v1/positions/'+encodeURIComponent(p.id)+'/close',{requestId:engineUuid()}).then(function(){return engineRefresh()}).then(function(){return true}).catch(function(e){if(e&&e.retryable)return LocalProvider.close(p,reason);toast(e.message||'Position close failed','dn');return false})},
+		 closePartial:function(p,lots){if(!canTradeServer())return Promise.reject(new Error('Partial close unavailable offline'));return engineRequest('/v1/positions/'+encodeURIComponent(p.id)+'/close-partial',{requestId:engineUuid(),lots:lots}).then(function(r){return engineRefresh().then(function(){return{ok:true,pnl:+r.pnl||0}})})},
+		 closeAll:function(){var ps=this.getPositions().slice();if(!canTradeServer())return Promise.resolve(LocalProvider.closeAll());return ps.reduce(function(chain,p){return chain.then(function(allOk){if(holdLeftSec(p)>0)return false;return engineRequest('/v1/positions/'+encodeURIComponent(p.id)+'/close',{requestId:engineUuid()}).then(function(){return allOk}).catch(function(e){toast(e.message||'A position could not be closed','dn');return false})})},Promise.resolve(true)).then(function(allOk){return engineRefresh().then(function(){return allOk})})},
+		 modifyPosition:function(p,sl,tp,ts){if(ts){toast('Trailing stops are not supported by the server engine yet','wn');return Promise.resolve(false)}if(!canTradeServer())return Promise.resolve(LocalProvider.modifyPosition(p,sl,tp,ts));return engineRequest('/v1/positions/'+encodeURIComponent(p.id)+'/protection',{stopLoss:sl||null,takeProfit:tp||null}).then(function(){return engineRefresh()}).then(function(){return true}).catch(function(e){if(e&&e.retryable)return LocalProvider.modifyPosition(p,sl,tp,ts);toast(e.message||'Position update failed','dn');return false})},
+		 modifyOrder:function(o,price,sl,tp){if(!canTradeServer())return Promise.resolve(LocalProvider.modifyOrder(o,price,sl,tp));return engineRequest('/v1/orders/'+encodeURIComponent(o.id)+'/modify',{price:price,stopLoss:sl||null,takeProfit:tp||null}).then(function(){return engineRefresh()}).then(function(){return true}).catch(function(e){if(e&&e.retryable)return LocalProvider.modifyOrder(o,price,sl,tp);toast(e.message||'Order update failed','dn');return false})},
+		 cancelOrder:function(o){if(!canTradeServer())return Promise.resolve(LocalProvider.cancelOrder(o));return engineRequest('/v1/orders/'+encodeURIComponent(o.id)+'/cancel',{}).then(function(){return engineRefresh()}).then(function(){return true}).catch(function(e){if(e&&e.retryable)return LocalProvider.cancelOrder(o);toast(e.message||'Order cancellation failed','dn');return false})}
+	};
+function localReady(){return true}
+function useLocal(){return !canTradeServer()}
 var LocalProvider={
  name:'PLUTUS Local Paper',
  getSymbols:function(){return SYIDS},
