@@ -1323,8 +1323,8 @@ function accOrders(a){return DB.orders.filter(function(o){return o.accId===a.id&
 var MIN_HOLD_MS=60000;
 function midPrice(q){if(!q||!(q.bid>0))return 0;return q.ask>q.bid?(q.bid+q.ask)/2:q.bid}
 function holdLeftSec(p){return Math.max(0,Math.ceil((MIN_HOLD_MS-(Date.now()-(p.openedAt||0)))/1000))}
-// Zero-spread execution: every simulated fill uses the exact Bid/Ask midpoint.
-function tradePrice(sym,side,q){q=q||qt(sym);return midPrice(q)}
+// Educational inverted execution: buy at Bid and sell at Ask.
+function tradePrice(sym,side,q){q=q||qt(sym);if(!q||!(q.bid>0))return 0;return side==='buy'?(q.bid||q.ask):(q.ask||q.bid)}
 function marginFor(a,sym,side,lots,px){var S=SYMBOLS[sym],lev=+a.leverage||0;
  return S&&lev>0&&px>0?toUSD(sym,px*lots*S.contract)/lev:0}
 function usedMargin(a){return accPositions(a).reduce(function(t,p){var q=qt(p.symbol);
@@ -1605,7 +1605,7 @@ var TradingProvider={
 	 cancelOrder:function(o){if(!cloudReady())return Promise.resolve(false);return engineRequest('/v1/orders/'+encodeURIComponent(o.id)+'/cancel',{}).then(function(){return engineRefresh()}).catch(function(e){toast(e.message||'Order cancellation failed','dn');return false})}
 };
 function localReady(){return DEMO_MODE||(CLOUD.ok&&CLOUD.hydrated)}
-function useLocal(){return DEMO_MODE||!ENGINE.base}
+function useLocal(){return !ENGINE.base}
 var LocalProvider={
  name:'PLUTUS Local Paper',
  getSymbols:function(){return SYIDS},
