@@ -8,8 +8,8 @@ describe("chart SL/TP drag contract", () => {
   it("uses a larger touch hit area and a visual drag state", () => {
     expect(html).toContain("bd=touch?38:24");
     expect(html).toContain("level-dragging");
-    expect(html).toContain("chart-drag-pill.invalid");
-    expect(html).toContain("candidate:pr,valid:chartRiskLevelValid");
+    expect(html).not.toContain("chart-drag-pill.invalid");
+    expect(html).toContain("candidate:pr,moved:true");
   });
 
   it("keeps preview values separate from the persisted position until release", () => {
@@ -23,5 +23,6 @@ describe("chart SL/TP drag contract", () => {
     expect(html).toContain("pos.sl=oldSl;pos.tp=oldTp");
     expect(html).toContain("TradingProvider.modifyPosition(pos,nextSl,nextTp,pos.ts)");
     expect(html).not.toContain("var rel=req.kind==='sl'");
+    expect(html).toContain("if(!chartRiskLevelValid(pos,moved.kind,price,Q[pos.symbol]))");
   });
 });

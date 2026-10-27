@@ -419,7 +419,6 @@ html[data-theme="light"] .chart-level-hint{background:rgba(255,255,255,.96);colo
 .chart-position-bar .cpb-close{margin-right:auto;color:var(--wn);border:1px solid var(--wn);border-radius:5px;padding:0 8px}.chart-position-bar .cpb-modify{color:var(--ac);font-size:24px;width:32px}.chart-position-bar .cpb-dismiss{color:var(--mut);width:24px}.chart-position-bar .cpb-level{width:32px;height:32px;border-radius:50%;border:1px solid currentColor}.chart-position-bar .sl{color:var(--wn)}.chart-position-bar .tp{color:var(--up)}
 .chart-drag-pill{position:absolute;right:68px;transform:translateY(-50%);z-index:16;display:flex;align-items:center;gap:6px;max-width:calc(100% - 84px);padding:5px 8px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.4);pointer-events:none;color:#fff;font:10px var(--mono);font-weight:700;white-space:nowrap}
 .chart-drag-pill.sl{background:#EF5350}.chart-drag-pill.tp{background:#10B981}.chart-drag-pill span{overflow:hidden;text-overflow:ellipsis}
-.chart-drag-pill.invalid{background:#6B7280}
 #chartEl.level-dragging{cursor:ns-resize}
 .mt5-bottom-sheet-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.66);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s}
 .mt5-bottom-sheet-backdrop.active{opacity:1;visibility:visible}
@@ -2184,7 +2183,7 @@ function beginChartLevelDrag(cv,e,xy){var req=chart.levelPlacement;if(!req||!cha
  var a=myAcc(),p=a&&DB.positions.find(function(x){return x.id===req.posId&&x.accId===a.id});
  if(!p||p.symbol!==chart.sym){chart.levelPlacement=null;paintChartLevelHint();toast('Position is no longer available','dn');return}
  var S=SYMBOLS[p.symbol],raw=chart.cs.coordinateToPrice(xy.y);if(raw==null)return;var pr=+raw.toFixed(S.digits);
- chart.levelPlacement=null;paintChartLevelHint();DRAG={pos:p,kind:req.kind,original:{sl:p.sl,tp:p.tp},creating:!p[req.kind],candidate:pr,valid:chartRiskLevelValid(p,req.kind,pr,Q[p.symbol]),moved:true};
+ chart.levelPlacement=null;paintChartLevelHint();DRAG={pos:p,kind:req.kind,original:{sl:p.sl,tp:p.tp},creating:!p[req.kind],candidate:pr,moved:true};
  chart.c.applyOptions({handleScroll:false,handleScale:false});try{cv.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();e.stopPropagation();dragLineMove(xy)}
 function lineDragStart(cv,e,xy){
  var y=xy.y;
@@ -2192,7 +2191,7 @@ function lineDragStart(cv,e,xy){
  tgs.forEach(function(t){var yy=chart.cs.priceToCoordinate(t.price);if(yy==null)return;
   if(t.kind==='entry')return;var d=Math.abs(y-yy);if(d<bd){bd=d;best=t}});
  if(!best)return;
- chart.c.applyOptions({handleScroll:false,handleScale:false});DRAG=best;DRAG.original=best.ord?{price:best.ord.price}:{sl:best.pos.sl,tp:best.pos.tp};DRAG.candidate=best.ord?best.ord.price:best.pos[best.kind];DRAG.valid=true;
+ chart.c.applyOptions({handleScroll:false,handleScale:false});DRAG=best;DRAG.original=best.ord?{price:best.ord.price}:{sl:best.pos.sl,tp:best.pos.tp};DRAG.candidate=best.ord?best.ord.price:best.pos[best.kind];
  var box=$('#chartEl');if(box)box.classList.add('level-dragging');
  try{cv.setPointerCapture(e.pointerId)}catch(_){}
  e.preventDefault()}
@@ -2201,11 +2200,11 @@ function dragLineMove(xy){
  var pr=chart.cs.coordinateToPrice(xy.y);if(pr==null)return;
  var S=SYMBOLS[chart.sym];pr=+pr.toFixed(S.digits);
  if(DRAG.ord){DRAG.ord.price=pr;DRAG.candidate=pr;DRAG.moved=true}
- else{var p=DRAG.pos,valid=chartRiskLevelValid(p,DRAG.kind,pr,Q[p.symbol]);
-  DRAG.candidate=pr;DRAG.valid=valid;DRAG.moved=true;chart.levelDraft={posId:p.id,sl:p.sl,tp:p.tp};chart.levelDraft[DRAG.kind]=pr;
+ else{var p=DRAG.pos;
+  DRAG.candidate=pr;DRAG.moved=true;chart.levelDraft={posId:p.id,sl:p.sl,tp:p.tp};chart.levelDraft[DRAG.kind]=pr;
   try{var pt=Math.pow(10,-S.digits),pts=(pr-p.entry)/pt*(p.side==='buy'?1:-1),usd=pnlUSD(p,pr),tip=document.getElementById('mt5DragTip');
    if(!tip){tip=document.createElement('div');tip.id='mt5DragTip';var bx=$('#mainWrap');if(bx)bx.appendChild(tip)}
-   tip.className='chart-drag-pill '+DRAG.kind+(valid?'':' invalid');tip.style.display='flex';tip.style.top=xy.y+'px';
+   tip.className='chart-drag-pill '+DRAG.kind;tip.style.display='flex';tip.style.top=xy.y+'px';
    tip.innerHTML='<b>'+DRAG.kind.toUpperCase()+'</b><span>'+pr.toFixed(S.digits)+'</span><span>'+(usd>=0?'+':'')+usd.toFixed(2)+' USD</span><span>'+pts.toFixed(0)+' pts</span>'}catch(_){}}
  if(!chart._lineRaf)chart._lineRaf=requestAnimationFrame(function(){chart._lineRaf=0;chartDrawLines()})}
  function cancelLineDrag(){var tip=document.getElementById('mt5DragTip');if(tip)tip.style.display='none';if(!DRAG)return;var d=DRAG;DRAG=null;chart.levelDraft=null;restoreChartGestures();
@@ -2214,7 +2213,7 @@ function dragLineMove(xy){
  function endLineDrag(){var tip=$('#mt5DragTip');if(tip)tip.style.display='none';if(!DRAG)return;var moved=DRAG,ord=moved.ord,pos=moved.pos;DRAG=null;restoreChartGestures();if(!moved.moved){chart.levelDraft=null;chartDrawLines();return}
  if(ord){var next=ord.price;ord.price=moved.original.price;confirmM('Modify order level','Save the new pending-order price?','Confirm',false).then(function(ok){if(ok)TradingProvider.modifyOrder(ord,next,ord.sl,ord.tp).then(function(done){if(done)chartDrawLines()});else chartDrawLines()});return}
  var price=moved.candidate;chart.levelDraft=null;pos.sl=moved.original.sl;pos.tp=moved.original.tp;
- if(!moved.valid||!chartRiskLevelValid(pos,moved.kind,price,Q[pos.symbol])){chartDrawLines();toast('Place '+moved.kind.toUpperCase()+' on the valid side of price','dn');return}
+ if(!chartRiskLevelValid(pos,moved.kind,price,Q[pos.symbol])){chartDrawLines();toast('Place '+moved.kind.toUpperCase()+' on the valid side of price','dn');return}
  var nextSl=moved.kind==='sl'?price:(pos.sl||null),nextTp=moved.kind==='tp'?price:(pos.tp||null),oldSl=pos.sl,oldTp=pos.tp;
  toast('Saving '+moved.kind.toUpperCase()+'…','');
  TradingProvider.modifyPosition(pos,nextSl,nextTp,pos.ts).then(function(done){if(done){chart.levelDraft=null;chart.selectedPositionId=pos.id;chartDrawLines();renderChartPositionBar();toast(moved.kind.toUpperCase()+' updated','up')}else{pos.sl=oldSl;pos.tp=oldTp;chartDrawLines()}})
