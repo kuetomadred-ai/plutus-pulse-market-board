@@ -17,12 +17,16 @@ export const Route = createFileRoute("/api/public/demo")({
           const bytes = crypto.getRandomValues(new Uint8Array(18));
           const password =
             "D" + btoa(String.fromCharCode(...bytes)).replace(/[^A-Za-z0-9]/g, "x") + "#9";
-          const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-            page: 1,
-            perPage: 1000,
-          });
-          if (listError) throw new Error("Could not inspect demo identity");
-          const existing = users.users.find((user) => user.email === email);
+          let existing;
+          for (let page = 1; page <= 20 && !existing; page += 1) {
+            const { data: users, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+              page,
+              perPage: 1000,
+            });
+            if (listError) throw new Error("Could not inspect demo identity");
+            existing = users.users.find((user) => user.email === email);
+            if (users.users.length < 1000) break;
+          }
           let userId = existing?.id;
           if (existing) {
             const { error } = await supabaseAdmin.auth.admin.updateUserById(existing.id, {

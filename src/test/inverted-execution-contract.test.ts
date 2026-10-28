@@ -34,7 +34,7 @@ describe("inverted educational execution contract", () => {
 
   it("reuses the same demo identity and account across device sessions", () => {
     expect(demo).toContain("listUsers({");
-    expect(demo).toContain("page: 1");
+    expect(demo).toContain("page,");
     expect(demo).toContain("perPage: 1000");
     expect(demo).toContain("updateUserById(existing.id");
     expect(demo).toContain("password,");

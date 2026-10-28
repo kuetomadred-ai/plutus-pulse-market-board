@@ -8,6 +8,10 @@ const migration = readFileSync(
   "utf8",
 );
 const worker = readFileSync(path.join(root, "supabase/functions/engine-worker/index.ts"), "utf8");
+const monitor = readFileSync(
+  path.join(root, "src/routes/api/public/jobs/monitor-trades.ts"),
+  "utf8",
+);
 const docs = readFileSync(path.join(root, "docs/BACKGROUND_ENGINE.md"), "utf8");
 
 describe("background engine contract", () => {
@@ -16,6 +20,8 @@ describe("background engine contract", () => {
     expect(migration).toContain("pf_engine_worker_claim");
     expect(migration).toContain("locked_until");
     expect(worker).toContain('p_worker_name: "engine-tick"');
+    expect(monitor).toContain("pf_engine_worker_claim");
+    expect(monitor).toContain("already-running");
   });
 
   it("processes server quotes and releases the lease on success and failure", () => {
@@ -23,6 +29,7 @@ describe("background engine contract", () => {
     expect(worker).toContain("pf_engine_worker_release");
     expect(worker).toContain('p_status: "error"');
     expect(worker).toContain('p_status: "ok"');
+    expect(monitor).toContain("pf_engine_worker_release");
   });
 
   it("documents Supabase scheduling without requiring a paid always-on server", () => {

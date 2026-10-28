@@ -955,12 +955,12 @@ var PAPER_STATE_KEY='plutus_paper_state_v1';
 function saveLocalTrades(){var u=user();if(!u||PORTAL_ADMIN)return;var o={version:1,ts:Date.now(),userId:u.id};TRK.forEach(function(k){o[k]=DB[k].filter(function(x){return x.userId===u.id})});try{localStorage.setItem(tradeKey(u.id),JSON.stringify(o));localStorage.setItem(PAPER_STATE_KEY,JSON.stringify(o))}catch(e){}}
 function mergeTrades(uid,b){TRK.forEach(function(k){if(Array.isArray(b[k]))DB[k]=DB[k].filter(function(x){return x.userId!==uid}).concat(b[k])})}
 function loadLocalTrades(uid){if(!uid||PORTAL_ADMIN)return;try{var raw=localStorage.getItem(tradeKey(uid));if(!raw){var shared=JSON.parse(localStorage.getItem(PAPER_STATE_KEY)||'null');if(shared&&shared.userId===uid)raw=JSON.stringify(shared)}var b=raw?JSON.parse(raw):null;if(b)mergeTrades(uid,b)}catch(e){}}
-function save(){savePrefs();saveLocalTrades();CLOUD.lastLocal=Date.now();if(DEMO_MODE)return Promise.resolve(true);if(!PORTAL_ADMIN){if(CLOUD.ok&&CLOUD.hydrated&&user()){clearTimeout(clT);clT=setTimeout(function(){cloudPushAux().catch(function(e){CLOUD.lastError=e})},300)}return Promise.resolve(ENGINE.online)}clearTimeout(svT);clearTimeout(clT);
+ function save(){savePrefs();saveLocalTrades();CLOUD.lastLocal=Date.now();if(DEMO_MODE||CLOUD.demoToken)return Promise.resolve(true);if(!PORTAL_ADMIN){if(CLOUD.ok&&CLOUD.hydrated&&user()){clearTimeout(clT);clT=setTimeout(function(){cloudPushAux().catch(function(e){CLOUD.lastError=e})},300)}return Promise.resolve(ENGINE.online)}clearTimeout(svT);clearTimeout(clT);
  if(!CLOUD.ok||!CLOUD.hydrated){CLOUD.pending=true;return Promise.resolve(false)}
  clT=setTimeout(function(){cloudPush().catch(function(e){CLOUD.lastError=e;CLOUD.online=false})},150);
  return Promise.resolve(true)}
 window.addEventListener('beforeunload',function(){savePrefs();saveLocalTrades()});
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'){saveLocalTrades();if(!DEMO_MODE&&!PORTAL_ADMIN&&CLOUD.ok&&CLOUD.hydrated&&user())cloudPushAux().catch(function(){})}});
+ document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&CLOUD.demoToken&&user())engineRefresh();if(document.visibilityState==='hidden'){saveLocalTrades();if(!DEMO_MODE&&!CLOUD.demoToken&&!PORTAL_ADMIN&&CLOUD.ok&&CLOUD.hydrated&&user())cloudPushAux().catch(function(){})}});
 function mkAccount(userId,templateId,kind){
  var t=DB.templates.find(function(x){return x.id===templateId})||DB.templates[1];
  var isInstant=t.programMode==='instant',targets=challengeTargets(t);
@@ -970,7 +970,7 @@ function seed(){return Promise.resolve()}
 function audit(actor,action,entity,details){
  var event={id:uid(),ts:Date.now(),actor:actor,action:action,entity:entity,details:details||''};
  DB.audit.unshift(event);if(DB.audit.length>500)DB.audit.length=500;
- if(!DEMO_MODE&&CLOUD.ok&&CLOUD.hydrated&&CLOUD.sb){CLOUD.sb.from('pf_audit_log').insert({event_id:event.id,actor:actor,action:action,entity:entity,details:event.details,created_at:new Date(event.ts).toISOString()}).then(function(r){if(r.error)CLOUD.lastError=r.error})}
+ if(!DEMO_MODE&&!CLOUD.demoToken&&CLOUD.ok&&CLOUD.hydrated&&CLOUD.sb){CLOUD.sb.from('pf_audit_log').insert({event_id:event.id,actor:actor,action:action,entity:entity,details:event.details,created_at:new Date(event.ts).toISOString()}).then(function(r){if(r.error)CLOUD.lastError=r.error})}
  save()}
 function notify(userId,level,title,body){
  DB.notifications.unshift({id:uid(),ts:Date.now(),userId:userId,level:level,title:title,body:body,read:false,emailQueuedAt:null});
@@ -984,7 +984,7 @@ function wTx(u,type,amt,note){var w=wallet(u);
  if(w.txns.length>200)w.txns.length=200;save()}
 
 /* ===== cloud sync (Supabase) ===== */
-var CLOUD={ok:false,online:false,hydrated:false,pending:false,authRole:null,sb:null,seen:{},agg:null,lastError:null};
+var CLOUD={ok:false,online:false,hydrated:false,pending:false,demoToken:false,authRole:null,sb:null,seen:{},agg:null,lastError:null};
 var ENGINE={base:window.PLUTUS_ENGINE_CLIENT.baseUrl(window.PLUTUS_ENGINE_API_URL),online:false,ready:false,syncing:false,syncPromise:null,lastError:null};
 function engineRequest(path,body){return window.PLUTUS_ENGINE_CLIENT.request(ENGINE.base,CLOUD.sb,(window.PLUTUS_NATIVE?'':'/api/public/engine')+path,body)}
 function engineUuid(){return window.PLUTUS_ENGINE_CLIENT.uuid()}
@@ -1107,7 +1107,7 @@ function cloudPull(){if(!CLOUD.ok)return Promise.resolve();
    if(!ar.error&&Array.isArray(ar.data))DB.audit=ar.data.map(function(x){return{id:x.event_id,ts:Date.parse(x.created_at),actor:x.actor,action:x.action,entity:x.entity,details:x.details||''}});
   }).catch(function(){return null});
  })}
-function cloudPoll(){if(!CLOUD.ok||!user())return Promise.resolve();var u=user(),dirty=false;
+function cloudPoll(){if(!CLOUD.ok||!user())return Promise.resolve();if(CLOUD.demoToken)return engineRefresh();var u=user(),dirty=false;
  return CLOUD.sb.from('pf_firm').select('blob,updated_at').eq('id','firm').maybeSingle().then(function(r){
   if(r.data&&(!CLOUD.seen.firm||r.data.updated_at>CLOUD.seen.firm)){applyFirm(r.data.blob);CLOUD.seen.firm=r.data.updated_at;dirty=true}})
   .then(function(){return CLOUD.sb.from('pf_users_data').select('blob,updated_at').eq('user_id',u.id).maybeSingle().then(function(r2){
@@ -1209,7 +1209,7 @@ function enterDemo(){
  try{localStorage.setItem(DK,deviceId)}catch(e){}
  function create(){var id=deviceId;
   return fetch('/api/public/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:id})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.session||!j.session.access_token)throw new Error(j.error||'Demo session unavailable');cred=j;localStorage.setItem(K,JSON.stringify(cred));return cred})})}
- function demoSession(c){if(!c.session||!c.session.access_token)return Promise.reject(new Error('Demo session unavailable'));var au=c.session.user||{};CLOUD.ok=true;CLOUD.hydrated=true;CLOUD.online=false;CLOUD.authRole='TRADER';var u=upsertAuthProfile({id:au.id,email:au.email||('demo-'+deviceId+'@demo.plutustrade.app')});DB.session=u.id;DEMO_MODE=false;return engineRefresh().then(function(ok){if(!ok||!ENGINE.ready)throw new Error('Cloud trading engine is unavailable');save();return null})}
+ function demoSession(c){if(!c.session||!c.session.access_token||!c.session.user||!c.session.user.id)return Promise.reject(new Error('Demo session unavailable'));var au=c.session.user;CLOUD.ok=true;CLOUD.hydrated=true;CLOUD.online=false;CLOUD.demoToken=true;CLOUD.authRole='TRADER';var u=upsertAuthProfile({id:au.id,email:au.email||('demo-'+deviceId+'@demo.plutustrade.app')});DB.session=u.id;DEMO_MODE=false;return engineRefresh().then(function(ok){if(!ok||!ENGINE.ready)throw new Error('Cloud trading engine is unavailable');save();return null})}
  toast('Opening your demo account…','up');
  create().then(function(c){return demoSession(c)})
   .then(function(err){if(err)throw new Error(err);enterApp(false)})

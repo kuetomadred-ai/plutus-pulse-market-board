@@ -59,7 +59,7 @@ Deno.serve(async (request) => {
   });
   const { data: claimed, error: claimError } = await supabase.rpc("pf_engine_worker_claim", {
     p_worker_name: "engine-tick",
-    p_lease_seconds: 55,
+      p_lease_seconds: 240,
   });
   if (claimError) return json({ error: "Worker lock unavailable" }, 503);
   if (!claimed) return json({ ok: true, skipped: "already-running" });

@@ -7,6 +7,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: plutus-trade-monitor
+  cancel-in-progress: false
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
