@@ -13,7 +13,15 @@
 1. طبّق migrations بالترتيب، خصوصًا:
    - `20261016090000_server_side_paper_engine.sql`
    - `20261026190000_background_engine_worker.sql`
-2. فعّل امتدادي `pg_cron` و`pg_net` من Supabase Dashboard > Database > Extensions.
+2. فعّل امتدادي `pg_cron` و`pg_net` من Supabase Dashboard > Database > Extensions. إذا كنت تستخدم SQL Editor بدل لوحة التحكم، نفّذ:
+
+```sql
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+```
+
+لا تغيّر المنطقة الزمنية إلى توقيت الهاتف؛ Supabase يضبط قاعدة البيانات على UTC افتراضيًا، وهذا هو الإعداد الموصى به. لذلك تعني جدولة `* * * * *` بداية كل دقيقة UTC.
+
 3. انشر الدالة:
 
 ```sh
@@ -38,9 +46,17 @@ select vault.create_secret(
 );
 ```
 
-5. أنشئ جدولة دقيقة واحدة. يمكن تنفيذها من SQL Editor بعد تفعيل `pg_cron` و`pg_net`:
+5. أنشئ جدولة دقيقة واحدة. الكتلة التالية قابلة لإعادة التنفيذ؛ فهي تلغي أي جدولة قديمة بالاسم نفسه قبل إنشاء الجديدة:
 
 ```sql
+do $$
+begin
+  if exists (select 1 from cron.job where jobname = 'plutus-engine-every-minute') then
+    perform cron.unschedule('plutus-engine-every-minute');
+  end if;
+end
+$$;
+
 select cron.schedule(
   'plutus-engine-every-minute',
   '* * * * *',
@@ -51,18 +67,37 @@ select cron.schedule(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'engine_worker_secret')
     ),
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 10000
   );
   $$
 );
 ```
 
-يمكن التحقق من الطلبات من `net._http_response` ومن حالة العامل عبر:
+يستخدم العامل سرًا مخصصًا في ترويسة `Authorization`. لا تستخدم `SUPABASE_PUBLISHABLE_KEY` لهذا الاستدعاء. يظل `verify_jwt = false` في `supabase/config.toml` لأن العامل يتحقق من `ENGINE_WORKER_SECRET` داخل الكود. لا تضع السر في SQL محفوظ داخل Git؛ قيمة Vault تُقرأ وقت التشغيل.
+
+تحقق أولًا من وجود جدولة واحدة فقط ومن توقيت الخادم:
+
+```sql
+select jobid, jobname, schedule, active
+from cron.job
+where jobname = 'plutus-engine-every-minute';
+
+select now() as database_now, current_setting('TIMEZONE') as database_timezone;
+```
+
+يمكن التحقق من الطلبات من `net._http_response` ومن حالة العامل. لأن `pg_net` غير متزامن، فإن نجاح `cron.schedule` يعني وضع طلب HTTP في الطابور، وليس اكتمال معالجة الأسعار. استخدم `status_code`, `timed_out`, و`error_msg` للتحقق من النتيجة:
 
 ```sql
 select worker_name, last_status, last_processed, last_started_at, last_finished_at, last_error
 from public.pf_engine_worker_runs
 where worker_name = 'engine-tick';
+
+select id, status_code, timed_out, error_msg, created
+from net._http_response
+where created > now() - interval '30 minutes'
+order by created desc
+limit 30;
 ```
 
 ## ملاحظات التشغيل المجاني
@@ -83,3 +118,10 @@ where worker_name = 'engine-tick';
 لم يعد مسار التداول الإنتاجي يستخدم `localStorage` أو Paper محليًا كبديل صامت. إذا لم تكن جلسة الخادم جاهزة، يوقف فتح/تعديل/إغلاق الصفقة برسالة واضحة بدل إنشاء صفقة لا يستطيع العامل الخلفي مراقبتها. التخزين المحلي قد يبقى لتفضيلات الواجهة فقط، وليس مصدر حقيقة للصفقات.
 
 حساب Demo يستخدم `plutus_demo_*` موقّعًا بـ HMAC-SHA256 بواسطة سر خادمي (`SUPABASE_SERVICE_ROLE_KEY` أو `LOVABLE_CRON_SECRET`). يتحقق `terminal-engine.server.ts` من التوقيع والانتهاء قبل ربط الطلب بـ `user_id` وتنفيذ RPC على PostgreSQL. لا تستخدم هذه الآلية Magic Links أو Supabase Password Auth، ولا تُرسل أسرار الخادم إلى العميل.
+
+## مصادر Supabase الرسمية
+
+- [Scheduling Edge Functions](https://supabase.com/docs/guides/functions/schedule-functions)
+- [Securing Edge Functions](https://supabase.com/docs/guides/functions/auth)
+- [pg_net: Async Networking](https://supabase.com/docs/guides/database/extensions/pg_net)
+- [Database configuration and UTC timezone](https://supabase.com/docs/guides/database/postgres/configuration)

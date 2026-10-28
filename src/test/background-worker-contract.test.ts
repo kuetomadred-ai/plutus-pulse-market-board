@@ -36,5 +36,8 @@ describe("background engine contract", () => {
     expect(docs).toContain("pg_cron");
     expect(docs).toContain("pg_net");
     expect(docs).toContain("vault.create_secret");
+    expect(docs).toContain("cron.unschedule");
+    expect(docs).toContain("timeout_milliseconds := 10000");
+    expect(docs).toContain("database_timezone");
   });
 });
