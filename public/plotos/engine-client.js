@@ -25,15 +25,16 @@
       unavailable.retryable = true;
       return Promise.reject(unavailable);
     }
-    if (!supabase) {
-      var unauthenticated = new Error("Authentication is unavailable.");
-      unauthenticated.retryable = true;
-      return Promise.reject(unauthenticated);
-    }
-    return supabase.auth
-      .getSession()
-      .then(function (result) {
-        var token = result.data && result.data.session && result.data.session.access_token;
+    var demoToken = "";
+    try {
+      var demo = JSON.parse(localStorage.getItem("plutus_demo_device_v1") || "{}");
+      demoToken = demo && demo.session && demo.session.access_token || "";
+    } catch (ignore) {}
+    var tokenPromise = demoToken ? Promise.resolve(demoToken) : supabase && supabase.auth
+      ? supabase.auth.getSession().then(function (result) {
+        return result.data && result.data.session && result.data.session.access_token || "";
+      }) : Promise.resolve("");
+    return tokenPromise.then(function (token) {
         if (!token) throw new Error("Please sign in again.");
         return fetch(apiBase + path, {
           method: body ? "POST" : "GET",
@@ -44,10 +45,6 @@
           body: body ? JSON.stringify(body) : undefined,
           credentials: "omit",
         });
-      })
-      .catch(function (error) {
-        if (error && !error.retryable) error.retryable = true;
-        throw error;
       })
       .then(function (response) {
         return response

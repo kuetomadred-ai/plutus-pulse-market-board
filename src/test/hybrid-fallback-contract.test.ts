@@ -6,6 +6,7 @@ const root = process.cwd();
 const page = readFileSync(path.join(root, "public/plotos/index.html"), "utf8");
 const client = readFileSync(path.join(root, "public/plotos/engine-client.js"), "utf8");
 const demo = readFileSync(path.join(root, "src/routes/api/public/demo.ts"), "utf8");
+const engine = readFileSync(path.join(root, "src/lib/terminal-engine.server.ts"), "utf8");
 const workflow = readFileSync(path.join(root, ".github/workflows/trade-monitor.yml"), "utf8");
 
 describe("cloud paper engine contract", () => {
@@ -16,11 +17,15 @@ describe("cloud paper engine contract", () => {
     expect(page).toContain("function useLocal(){return false}");
   });
 
-  it("returns and installs an authenticated Supabase session for demo", () => {
-    expect(demo).toContain("auth/v1/verify");
+  it("returns and uses a server-signed demo session without Magic Link", () => {
+    expect(demo).toContain("signDemoToken");
+    expect(demo).not.toContain("generateLink");
+    expect(demo).not.toContain("auth/v1/verify");
     expect(demo).toContain("access_token");
-    expect(demo).toContain("refresh_token");
-    expect(page).toContain("CLOUD.sb.auth.setSession(c.session)");
+    expect(page).toContain("c.session.access_token");
+    expect(page).not.toContain("CLOUD.sb.auth.setSession(c.session)");
+    expect(engine).toContain("verifyDemoToken(token)");
+    expect(engine).toContain("client = supabaseAdmin as SupabaseClient");
   });
 
   it("triggers the authenticated monitor endpoint on a free schedule", () => {
@@ -28,6 +33,6 @@ describe("cloud paper engine contract", () => {
     expect(workflow).toContain("/api/public/jobs/monitor-trades");
     expect(workflow).toContain("LOVABLE_CRON_SECRET");
     expect(workflow).toContain("workflow_dispatch");
-    expect(client).toContain("getSession()");
+    expect(client).toContain("plutus_demo_device_v1");
   });
 });

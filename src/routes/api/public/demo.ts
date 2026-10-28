@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { signDemoToken } from "@/lib/demo-token.server";
 
 // Educational paper account: one persistent server-side identity per device.
 export const Route = createFileRoute("/api/public/demo")({
@@ -39,51 +40,12 @@ export const Route = createFileRoute("/api/public/demo")({
             userId = data.user.id;
           }
           if (!userId) throw new Error("Demo identity is unavailable");
-          const { data: link } = await supabaseAdmin.auth.admin.generateLink({
-            type: "magiclink",
-            email,
-          });
-          const tokenHash = link?.properties?.hashed_token || "";
-          if (!tokenHash) throw new Error("Could not create demo session token");
-          const supabaseUrl = process.env["SUPABASE_URL"];
-          const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
-          if (!supabaseUrl || !serviceRoleKey)
-            throw new Error("Supabase session configuration is missing");
-          const sessionResponse = await fetch(`${supabaseUrl.replace(/\/$/, "")}/auth/v1/verify`, {
-            method: "POST",
-            headers: {
-              apikey: serviceRoleKey,
-              Authorization: `Bearer ${serviceRoleKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ token_hash: tokenHash, type: "magiclink" }),
-          });
-          const sessionPayload = (await sessionResponse.json()) as {
-            access_token?: string;
-            refresh_token?: string;
-            expires_in?: number;
-            token_type?: string;
-            user?: { id?: string; email?: string };
-            msg?: string;
-            error_description?: string;
-          };
-          if (
-            !sessionResponse.ok ||
-            !sessionPayload.access_token ||
-            !sessionPayload.refresh_token
-          ) {
-            throw new Error(
-              sessionPayload.error_description ||
-                sessionPayload.msg ||
-                "Could not issue demo session",
-            );
-          }
+          const accessToken = signDemoToken(userId, deviceId);
           const session = {
-            access_token: sessionPayload.access_token,
-            refresh_token: sessionPayload.refresh_token,
-            expires_in: sessionPayload.expires_in || 3600,
-            token_type: sessionPayload.token_type || "bearer",
-            user: sessionPayload.user || { id: userId, email },
+            access_token: accessToken,
+            token_type: "bearer",
+            expires_in: 30 * 86400,
+            user: { id: userId, email },
           };
 
           const { data: account, error: accountError } = await supabaseAdmin
@@ -94,7 +56,7 @@ export const Route = createFileRoute("/api/public/demo")({
           if (accountError) throw new Error("Could not read demo account");
           if (account)
             return Response.json(
-              { session, login: account.id, persistent: true, paper: true },
+              { email, password, session, login: account.id, persistent: true, paper: true },
               { headers },
             );
 
@@ -121,7 +83,7 @@ export const Route = createFileRoute("/api/public/demo")({
           }
           if (!accountId) throw new Error("Could not create demo account");
           return Response.json(
-            { session, login: accountId, persistent: true, paper: true },
+            { email, password, session, login: accountId, persistent: true, paper: true },
             { headers },
           );
         } catch (error) {
