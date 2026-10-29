@@ -15,6 +15,8 @@ describe("cloud paper engine contract", () => {
     expect(page).toContain("function cloudTradingRequired()");
     expect(page).toContain("if(!canTradeServer())return cloudTradingRequired()");
     expect(page).toContain("function useLocal(){return false}");
+    expect(page).toContain("function enterLocalDemo(){return enterDemo()}");
+    expect(page).toContain("localStorage.removeItem('plutus_demo_token')");
   });
 
   it("returns and uses a server-signed demo session without Magic Link", () => {
@@ -23,6 +25,7 @@ describe("cloud paper engine contract", () => {
     expect(demo).not.toContain("auth/v1/verify");
     expect(demo).toContain("access_token");
     expect(page).toContain("c.session.access_token");
+    expect(page).toContain("localStorage.setItem('plutus_demo_token',j.session.access_token)");
     expect(page).not.toContain("CLOUD.sb.auth.setSession(c.session)");
     expect(engine).toContain("verifyDemoToken(token)");
     expect(engine).toContain("client = supabaseAdmin as SupabaseClient");
@@ -34,5 +37,6 @@ describe("cloud paper engine contract", () => {
     expect(workflow).toContain("LOVABLE_CRON_SECRET");
     expect(workflow).toContain("workflow_dispatch");
     expect(client).toContain("plutus_demo_device_v1");
+    expect(client).toContain("plutus_demo_token");
   });
 });

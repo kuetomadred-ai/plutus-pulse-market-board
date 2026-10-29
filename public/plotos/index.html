@@ -1208,22 +1208,15 @@ function enterDemo(){
  if(!deviceId)deviceId=crypto.randomUUID?crypto.randomUUID():'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,function(c){return(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)});
  try{localStorage.setItem(DK,deviceId)}catch(e){}
  function create(){var id=deviceId;
-  return fetch('/api/public/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:id})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.session||!j.session.access_token)throw new Error(j.error||'Demo session unavailable');cred=j;localStorage.setItem(K,JSON.stringify(cred));return cred})})}
+  return fetch('/api/public/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:id})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.session||!j.session.access_token)throw new Error(j.error||'Demo session unavailable');cred=j;localStorage.setItem(K,JSON.stringify(cred));localStorage.setItem('plutus_demo_token',j.session.access_token);return cred})})}
  function demoSession(c){if(!c.session||!c.session.access_token||!c.session.user||!c.session.user.id)return Promise.reject(new Error('Demo session unavailable'));var au=c.session.user;CLOUD.ok=true;CLOUD.hydrated=true;CLOUD.online=false;CLOUD.demoToken=true;CLOUD.authRole='TRADER';var u=upsertAuthProfile({id:au.id,email:au.email||('demo-'+deviceId+'@demo.plutustrade.app')});DB.session=u.id;DEMO_MODE=false;return engineRefresh().then(function(ok){if(!ok||!ENGINE.ready)throw new Error('Cloud trading engine is unavailable');save();return null})}
  toast('Opening your demo account…','up');
  create().then(function(c){return demoSession(c)})
   .then(function(err){if(err)throw new Error(err);enterApp(false)})
   .catch(function(e){showErr(e);renderAuth('Cloud demo session unavailable. Please try again.');})}
 window.enterDemo=enterDemo;
-function enterLocalDemo(){
- if(PORTAL_ADMIN){toast('Demo trading login is available from the Trading Portal only','dn');return}
- DEMO_MODE=true;var id='demo-trader-local';loadLocalTrades(id);var u=DB.users.find(function(x){return x.id===id});
- if(!u){u={id:id,email:'demo@plotos.local',name:'Demo Trader',role:'TRADER',status:'ACTIVE',createdAt:Date.now(),refCode:'PFDEMO01',kyc:'NONE',termsAt:Date.now(),_u:Date.now()};DB.users.push(u)}
- var a=DB.accounts.find(function(x){return x.userId===id&&x.kind==='PAPER'});
- if(!a){a=mkAccount(id,'t50','PAPER');a.login=90001;DB.accounts.push(a)}
- DB.activeAcc[id]=a.id;DB.session=id;CLOUD.authRole='TRADER';termSym=SYMBOLS.XAUUSD?'XAUUSD':(SYMBOLS.XAUUSD_HKN?'XAUUSD_HKN':(SYIDS[0]||'XAUUSD'));chart.sym=termSym;chart.tf='1m';DB.settings.lastSym=termSym;DB.settings.lastTf='1m';DB.settings.ind.rsi=false;save();audit('demo','Demo Login','account '+a.login,'Local paper account');enterApp(false)
-}
-function doLogout(){var u=user();var done=!DEMO_MODE&&CLOUD.ok?CLOUD.sb.auth.signOut():Promise.resolve();done.catch(function(){}).then(function(){if(u)audit(u.email,'Logout','user',DEMO_MODE?'Local demo':'Supabase Auth');DB.session=null;DEMO_MODE=false;save();closeDrawer();renderAuth();if(PREVIEW_DEMO&&!CLOUD.ok)cloudInit().catch(function(e){CLOUD.lastError=e;renderAuth('Sign in is unavailable. You can still open the demo.')})})}
+function enterLocalDemo(){return enterDemo()}
+function doLogout(){var u=user();var done=!DEMO_MODE&&CLOUD.ok&&CLOUD.sb?CLOUD.sb.auth.signOut():Promise.resolve();done.catch(function(){}).then(function(){try{localStorage.removeItem('plutus_demo_device_v1');localStorage.removeItem('plutus_demo_token')}catch(e){}if(u)audit(u.email,'Logout','user',DEMO_MODE?'Local demo':'Supabase Auth');DB.session=null;DEMO_MODE=false;CLOUD.demoToken=false;save();closeDrawer();renderAuth();if(PREVIEW_DEMO&&!CLOUD.ok)cloudInit().catch(function(e){CLOUD.lastError=e;renderAuth('Sign in is unavailable. You can still open the demo.')})})}
 window.doLogout=doLogout;
 function isStaff(u){var r=CLOUD.authRole;return!!(u&&r&&(r==='ADMIN'||r==='RISK'||r==='FINANCE'||r==='SUPPORT'))}
 function canApprovePlanRequests(){return!!user()&&!DEMO_MODE&&(CLOUD.authRole==='ADMIN'||CLOUD.authRole==='FINANCE')}

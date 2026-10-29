@@ -27,8 +27,11 @@
     }
     var demoToken = "";
     try {
-      var demo = JSON.parse(localStorage.getItem("plutus_demo_device_v1") || "{}");
-      demoToken = demo && demo.session && demo.session.access_token || "";
+      demoToken = localStorage.getItem("plutus_demo_token") || "";
+      if (!demoToken) {
+        var demo = JSON.parse(localStorage.getItem("plutus_demo_device_v1") || "{}");
+        demoToken = demo && demo.session && demo.session.access_token || "";
+      }
     } catch (ignore) {}
     var tokenPromise = demoToken ? Promise.resolve(demoToken) : supabase && supabase.auth
       ? supabase.auth.getSession().then(function (result) {
