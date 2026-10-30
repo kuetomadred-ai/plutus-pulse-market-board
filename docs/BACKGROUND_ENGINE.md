@@ -4,7 +4,7 @@
 
 ## المسار المجاني الموصى به
 
-يحتوي المستودع على Edge Function باسم `engine-worker`. كل تشغيل يجلب آخر الأسعار من Biquote، ثم يستدعي `pf_engine_process_tick` لكل أداة مفعلة. هذا يغلق SL/TP ويفعّل الأوامر المعلقة ويشغل تقييم المخاطر حتى لو كان الهاتف أو المتصفح مغلقًا. يوجد قفل وقائي fenced lease في `pf_engine_worker_runs` يمنع تشغيل نسختين في الوقت نفسه، ويمنع العامل القديم من تحرير قفل عامل أحدث بعد انتهاء مهلة الأول، وتظل حالة آخر تشغيل قابلة للفحص.
+يحتوي المستودع على Edge Function باسم `engine-worker`. كل تشغيل يجلب آخر الأسعار من Biquote، ثم يستدعي `pf_engine_process_tick` لكل أداة مفعلة. هذا يغلق SL/TP ويفعّل الأوامر المعلقة حتى لو كان الهاتف أو المتصفح مغلقًا. يوجد قفل وقائي fenced lease في `pf_engine_worker_runs` يمنع تشغيل نسختين في الوقت نفسه، ويمنع العامل القديم من تحرير قفل عامل أحدث بعد انتهاء مهلة الأول، وتظل حالة آخر تشغيل قابلة للفحص.
 
 هذا المسار يعمل بدقة دورة الجدولة، وليس كتدفق tick لحظي. للمراقبة اللحظية أثناء تشغيل خادم مستمر يمكن تشغيل `backend/src/worker.ts`، لكن Edge Function هو مسار الاستمرارية الأساسي.
 
@@ -14,6 +14,8 @@
    - `20261016090000_server_side_paper_engine.sql`
    - `20261026190000_background_engine_worker.sql`
    - `20261030130000_fenced_background_worker_lease.sql`
+   - `20261030140000_activate_background_engine.sql`
+   - `20261030150000_seed_engine_instruments.sql`
 2. فعّل امتدادي `pg_cron` و`pg_net` من Supabase Dashboard > Database > Extensions. إذا كنت تستخدم SQL Editor بدل لوحة التحكم، نفّذ:
 
 ```sql
@@ -30,7 +32,7 @@ supabase functions deploy engine-worker --no-verify-jwt
 supabase secrets set ENGINE_WORKER_SECRET="ضع-سرًا-عشوائيًا-طويلًا" BIQUOTE_URL="https://biquote.io"
 ```
 
-يجب أن تكون `SUPABASE_SERVICE_ROLE_KEY` ضمن أسرار بيئة Edge Function. لا تضعها في التطبيق أو Git.
+يجب أن تكون `SUPABASE_SERVICE_ROLE_KEY` ضمن أسرار بيئة Edge Function. في المشروع المفعّل تُقرأ هوية العامل من Vault عبر دالة محمية بـ `service_role`، ولا تُعرض قيمة السر في التطبيق أو Git.
 
 4. خزّن عنوان الدالة والسر في Vault، وليس في نص SQL أو Git. نفّذ SQL التالي بعد استبدال القيم محليًا فقط:
 
@@ -47,7 +49,7 @@ select vault.create_secret(
 );
 ```
 
-5. أنشئ جدولة دقيقة واحدة. الكتلة التالية قابلة لإعادة التنفيذ؛ فهي تلغي أي جدولة قديمة بالاسم نفسه قبل إنشاء الجديدة:
+5. migration `20261030140000_activate_background_engine.sql` تنشئ أسرار Vault عشوائية وتفعّل جدولة دقيقة واحدة. إذا أُنشئت الجدولة يدويًا، فالكتلة التالية قابلة لإعادة التنفيذ؛ فهي تلغي أي جدولة قديمة بالاسم نفسه قبل إنشاء الجديدة:
 
 ```sql
 do $$

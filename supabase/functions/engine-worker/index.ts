@@ -51,14 +51,23 @@ function parseQuotes(payload: unknown, symbols: string[], now = Date.now()): Quo
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "POST required" }, 405);
-  if (!supabaseUrl || !serviceKey || !workerSecret)
+  if (!supabaseUrl || !serviceKey)
     return json({ error: "Worker is not configured" }, 503);
-  const authorization = request.headers.get("authorization") ?? "";
-  if (authorization !== `Bearer ${workerSecret}`) return json({ error: "Unauthorized" }, 401);
 
   const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  let expectedSecret = workerSecret;
+  if (!expectedSecret) {
+    const { data: vaultSecret, error: secretError } = await supabase.rpc(
+      "pf_engine_worker_secret",
+    );
+    if (secretError || typeof vaultSecret !== "string" || !vaultSecret)
+      return json({ error: "Worker secret is not configured" }, 503);
+    expectedSecret = vaultSecret;
+  }
+  const authorization = request.headers.get("authorization") ?? "";
+  if (authorization !== `Bearer ${expectedSecret}`) return json({ error: "Unauthorized" }, 401);
   const { data: leaseId, error: claimError } = await supabase.rpc("pf_engine_worker_claim", {
     p_worker_name: "engine-tick",
     p_lease_seconds: 240,
@@ -95,8 +104,6 @@ Deno.serve(async (request) => {
       if (error) throw new Error(`Tick ${quote.symbol} failed: ${error.message}`);
       processed += 1;
     }
-    const { error: riskError } = await supabase.rpc("pf_engine_evaluate_all");
-    if (riskError) throw riskError;
     const { error: releaseError } = await supabase.rpc("pf_engine_worker_release", {
       p_worker_name: "engine-tick",
       p_lease_id: leaseId,
