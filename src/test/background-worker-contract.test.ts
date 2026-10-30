@@ -7,6 +7,10 @@ const migration = readFileSync(
   path.join(root, "supabase/migrations/20261026190000_background_engine_worker.sql"),
   "utf8",
 );
+const fencedMigration = readFileSync(
+  path.join(root, "supabase/migrations/20261030130000_fenced_background_worker_lease.sql"),
+  "utf8",
+);
 const worker = readFileSync(path.join(root, "supabase/functions/engine-worker/index.ts"), "utf8");
 const monitor = readFileSync(
   path.join(root, "src/routes/api/public/jobs/monitor-trades.ts"),
@@ -22,6 +26,8 @@ describe("background engine contract", () => {
     expect(worker).toContain('p_worker_name: "engine-tick"');
     expect(monitor).toContain("pf_engine_worker_claim");
     expect(monitor).toContain("already-running");
+    expect(fencedMigration).toContain("lease_id uuid");
+    expect(fencedMigration).toContain("and lease_id = p_lease_id");
   });
 
   it("processes server quotes and releases the lease on success and failure", () => {
@@ -30,6 +36,8 @@ describe("background engine contract", () => {
     expect(worker).toContain('p_status: "error"');
     expect(worker).toContain('p_status: "ok"');
     expect(monitor).toContain("pf_engine_worker_release");
+    expect(worker).toContain("p_lease_id: leaseId");
+    expect(monitor).toContain("Worker lease release failed");
   });
 
   it("documents Supabase scheduling without requiring a paid always-on server", () => {
@@ -39,5 +47,7 @@ describe("background engine contract", () => {
     expect(docs).toContain("cron.unschedule");
     expect(docs).toContain("timeout_milliseconds := 10000");
     expect(docs).toContain("database_timezone");
+    expect(docs).toContain("fenced lease");
+    expect(docs).toContain("BIQUOTE_URL");
   });
 });

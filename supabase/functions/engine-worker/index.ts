@@ -43,26 +43,28 @@ function parseQuotes(payload: unknown, symbols: string[], now = Date.now()): Quo
       item.stale === true ||
       milliseconds < now - 15_000 ||
       milliseconds > now + 5_000
-    ) return [];
+    )
+      return [];
     return [{ symbol, bid, ask, quoteAt: new Date(milliseconds).toISOString() }];
   });
 }
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "POST required" }, 405);
-  if (!supabaseUrl || !serviceKey || !workerSecret) return json({ error: "Worker is not configured" }, 503);
+  if (!supabaseUrl || !serviceKey || !workerSecret)
+    return json({ error: "Worker is not configured" }, 503);
   const authorization = request.headers.get("authorization") ?? "";
   if (authorization !== `Bearer ${workerSecret}`) return json({ error: "Unauthorized" }, 401);
 
   const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: claimed, error: claimError } = await supabase.rpc("pf_engine_worker_claim", {
+  const { data: leaseId, error: claimError } = await supabase.rpc("pf_engine_worker_claim", {
     p_worker_name: "engine-tick",
-      p_lease_seconds: 240,
+    p_lease_seconds: 240,
   });
   if (claimError) return json({ error: "Worker lock unavailable" }, 503);
-  if (!claimed) return json({ ok: true, skipped: "already-running" });
+  if (!leaseId) return json({ ok: true, skipped: "already-running" });
 
   let processed = 0;
   try {
@@ -95,20 +97,24 @@ Deno.serve(async (request) => {
     }
     const { error: riskError } = await supabase.rpc("pf_engine_evaluate_all");
     if (riskError) throw riskError;
-    await supabase.rpc("pf_engine_worker_release", {
+    const { error: releaseError } = await supabase.rpc("pf_engine_worker_release", {
       p_worker_name: "engine-tick",
+      p_lease_id: leaseId,
       p_status: "ok",
       p_processed: processed,
     });
+    if (releaseError) return json({ error: "Worker lease release failed", processed }, 503);
     return json({ ok: true, processed });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Worker failed";
-    await supabase.rpc("pf_engine_worker_release", {
+    const { error: releaseError } = await supabase.rpc("pf_engine_worker_release", {
       p_worker_name: "engine-tick",
+      p_lease_id: leaseId,
       p_status: "error",
       p_processed: processed,
       p_error: message,
     });
+    if (releaseError) return json({ error: "Worker lease release failed", processed }, 503);
     return json({ error: "Background engine tick failed", processed }, 503);
   }
 });
