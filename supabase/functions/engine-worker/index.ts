@@ -70,7 +70,7 @@ Deno.serve(async (request) => {
   if (authorization !== `Bearer ${expectedSecret}`) return json({ error: "Unauthorized" }, 401);
   const { data: leaseId, error: claimError } = await supabase.rpc("pf_engine_worker_claim", {
     p_worker_name: "engine-tick",
-    p_lease_seconds: 240,
+    p_lease_seconds: 30,
   });
   if (claimError) return json({ error: "Worker lock unavailable" }, 503);
   if (!leaseId) return json({ ok: true, skipped: "already-running" });
