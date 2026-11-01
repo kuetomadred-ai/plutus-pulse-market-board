@@ -960,7 +960,7 @@ function loadLocalTrades(uid){if(!uid||PORTAL_ADMIN)return;try{var raw=localStor
  clT=setTimeout(function(){cloudPush().catch(function(e){CLOUD.lastError=e;CLOUD.online=false})},150);
  return Promise.resolve(true)}
 window.addEventListener('beforeunload',function(){savePrefs();saveLocalTrades()});
- document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&CLOUD.demoToken&&user())engineRefresh();if(document.visibilityState==='hidden'){saveLocalTrades();if(!DEMO_MODE&&!CLOUD.demoToken&&!PORTAL_ADMIN&&CLOUD.ok&&CLOUD.hydrated&&user())cloudPushAux().catch(function(){})}});
+ document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&CLOUD.demoToken&&user())engineReconcile().then(engineRefresh).catch(engineRefresh);if(document.visibilityState==='hidden'){saveLocalTrades();if(!DEMO_MODE&&!CLOUD.demoToken&&!PORTAL_ADMIN&&CLOUD.ok&&CLOUD.hydrated&&user())cloudPushAux().catch(function(){})}});
 function mkAccount(userId,templateId,kind){
  var t=DB.templates.find(function(x){return x.id===templateId})||DB.templates[1];
  var isInstant=t.programMode==='instant',targets=challengeTargets(t);
@@ -984,12 +984,13 @@ function wTx(u,type,amt,note){var w=wallet(u);
  if(w.txns.length>200)w.txns.length=200;save()}
 
 /* ===== cloud sync (Supabase) ===== */
-var CLOUD={ok:false,online:false,hydrated:false,pending:false,demoToken:false,authRole:null,sb:null,seen:{},agg:null,lastError:null};
-var ENGINE={base:window.PLUTUS_ENGINE_CLIENT.baseUrl(window.PLUTUS_ENGINE_API_URL),online:false,ready:false,syncing:false,syncPromise:null,lastError:null};
-function engineRequest(path,body){return window.PLUTUS_ENGINE_CLIENT.request(ENGINE.base,CLOUD.sb,(window.PLUTUS_NATIVE?'':'/api/public/engine')+path,body)}
-function engineUuid(){return window.PLUTUS_ENGINE_CLIENT.uuid()}
-function enginePosition(x,accountId,userId){return{id:x.id,accId:accountId,userId:userId,symbol:x.symbol,side:x.side,lots:+x.lots,entry:+x.entry_price,sl:x.stop_loss==null?null:+x.stop_loss,tp:x.take_profit==null?null:+x.take_profit,ts:0,openedAt:Date.parse(x.opened_at)||Date.now(),swap:0,src:'server',state:x.status}}
-function engineRefresh(){
+ var CLOUD={ok:false,online:false,hydrated:false,pending:false,demoToken:false,authRole:null,sb:null,seen:{},agg:null,lastError:null};
+ var ENGINE={base:window.PLUTUS_ENGINE_CLIENT.baseUrl(window.PLUTUS_ENGINE_API_URL),online:false,ready:false,syncing:false,syncPromise:null,lastError:null};
+ function engineRequest(path,body){return window.PLUTUS_ENGINE_CLIENT.request(ENGINE.base,CLOUD.sb,(window.PLUTUS_NATIVE?'':'/api/public/engine')+path,body)}
+ function engineUuid(){return window.PLUTUS_ENGINE_CLIENT.uuid()}
+ function enginePosition(x,accountId,userId){return{id:x.id,accId:accountId,userId:userId,symbol:x.symbol,side:x.side,lots:+x.lots,entry:+x.entry_price,sl:x.stop_loss==null?null:+x.stop_loss,tp:x.take_profit==null?null:+x.take_profit,ts:0,openedAt:Date.parse(x.opened_at)||Date.now(),swap:0,src:'server',state:x.status}}
+ function engineReconcile(){if(PORTAL_ADMIN||!CLOUD.demoToken||!user()||!ENGINE.base)return Promise.resolve(null);return engineRequest('/v1/reconcile-candles',{lookbackMinutes:1000}).catch(function(e){ENGINE.lastError=e;return null})}
+ function engineRefresh(){
  if(PORTAL_ADMIN)return Promise.resolve(false);
  var u=user();if(!u)return Promise.resolve(false);
  if(!ENGINE.base){ENGINE.online=false;ENGINE.ready=false;return Promise.resolve(false)}
@@ -1209,7 +1210,7 @@ function enterDemo(){
  try{localStorage.setItem(DK,deviceId)}catch(e){}
  function create(){var id=deviceId;
   return fetch('/api/public/demo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceId:id})}).then(function(r){return r.json().then(function(j){if(!r.ok||!j.session||!j.session.access_token)throw new Error(j.error||'Demo session unavailable');cred=j;localStorage.setItem(K,JSON.stringify(cred));localStorage.setItem('plutus_demo_token',j.session.access_token);return cred})})}
- function demoSession(c){if(!c.session||!c.session.access_token||!c.session.user||!c.session.user.id)return Promise.reject(new Error('Demo session unavailable'));var au=c.session.user;CLOUD.ok=true;CLOUD.hydrated=true;CLOUD.online=false;CLOUD.demoToken=true;CLOUD.authRole='TRADER';var u=upsertAuthProfile({id:au.id,email:au.email||('demo-'+deviceId+'@demo.plutustrade.app')});DB.session=u.id;DEMO_MODE=false;return engineRefresh().then(function(ok){if(!ok||!ENGINE.ready)throw new Error('Cloud trading engine is unavailable');save();return null})}
+ function demoSession(c){if(!c.session||!c.session.access_token||!c.session.user||!c.session.user.id)return Promise.reject(new Error('Demo session unavailable'));var au=c.session.user;CLOUD.ok=true;CLOUD.hydrated=true;CLOUD.online=false;CLOUD.demoToken=true;CLOUD.authRole='TRADER';var u=upsertAuthProfile({id:au.id,email:au.email||('demo-'+deviceId+'@demo.plutustrade.app')});DB.session=u.id;DEMO_MODE=false;return engineReconcile().then(engineRefresh).then(function(ok){if(!ok||!ENGINE.ready)throw new Error('Cloud trading engine is unavailable');save();return null})}
  toast('Opening your demo account…','up');
  create().then(function(c){return demoSession(c)})
   .then(function(err){if(err)throw new Error(err);enterApp(false)})

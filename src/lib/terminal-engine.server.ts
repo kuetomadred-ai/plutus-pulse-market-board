@@ -95,6 +95,42 @@ export async function handleTerminalRequest(request: Request, path: string) {
     const text = await request.text();
     if (text.length > 16384) return reply({ error: "Request too large" }, 413);
     const body: unknown = JSON.parse(text || "{}");
+    if (path === "v1/reconcile-candles") {
+      z.object({ lookbackMinutes: z.number().int().min(1).max(1000).optional() }).strict().parse(body);
+      const { data: positions, error: positionsError } = await supabaseAdmin
+        .from("pf_engine_positions")
+        .select("id,symbol,opened_at,protection_changed_at")
+        .eq("user_id", userId)
+        .eq("status", "OPEN")
+        .or("stop_loss.not.is.null,take_profit.not.is.null")
+        .order("opened_at", { ascending: true })
+        .limit(100);
+      if (positionsError) throw positionsError;
+      const symbols = [...new Set((positions ?? []).map((row) => row.symbol as string))];
+      const results: Array<Record<string, unknown>> = [];
+      const { parseRiskBars } = await import("./engine-candles");
+      for (const symbol of symbols) {
+        const response = await fetch(
+          `https://biquote.io/api/${encodeURIComponent(symbol)}/ohlc?interval=1m&limit=1000`,
+          { signal: AbortSignal.timeout(8_000) },
+        );
+        if (!response.ok) throw new Error(`Candle source returned ${response.status}`);
+        const parsed = parseRiskBars(await response.json());
+        if (!parsed.bars.length) {
+          results.push({ symbol, closed: 0, unresolved: 0, bars: 0, basis: parsed.basis });
+          continue;
+        }
+        const { data, error } = await supabaseAdmin.rpc("pf_engine_reconcile_candles", {
+          p_symbol: symbol,
+          p_bars: parsed.bars,
+          p_basis: parsed.basis,
+          p_user_id: userId,
+        });
+        if (error) throw error;
+        results.push({ symbol, ...(data as Record<string, unknown>), bars: parsed.bars.length });
+      }
+      return reply({ results });
+    }
     let rpc: string, args: Record<string, unknown>;
     if (path === "v1/orders") {
       const x = orderSchema.parse(body);
