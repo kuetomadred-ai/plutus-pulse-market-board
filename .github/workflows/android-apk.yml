@@ -1,0 +1,119 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_release:
+        description: Build the unsigned release APK/AAB in addition to the installable debug APK
+        required: false
+        default: true
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - "public/**"
+      - "android/**"
+      - "capacitor.config.json"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android:
+    name: Build Android packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # Optional repository secrets. If omitted, the app remains fail-closed for trading.
+      PLUTUS_ENGINE_API_URL: ${{ secrets.PLUTUS_ENGINE_API_URL }}
+      PLUTUS_SUPABASE_URL: ${{ secrets.PLUTUS_SUPABASE_URL }}
+      PLUTUS_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.PLUTUS_SUPABASE_PUBLISHABLE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install JavaScript dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Prepare Capacitor web assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          mkdir -p dist
+          cp -R public/plotos/. dist/
+
+          # Native builds need an absolute backend origin. Keep the checked-in
+          # configuration fail-closed when the optional secrets are not set.
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          path = Path("dist/engine-config.js")
+          text = path.read_text()
+          replacements = {
+              'window.PLUTUS_ENGINE_API_URL = window.PLUTUS_NATIVE ? "" : window.location.origin;':
+                  'window.PLUTUS_ENGINE_API_URL = window.PLUTUS_NATIVE ? ' + repr(os.environ.get("PLUTUS_ENGINE_API_URL", "")) + ' : window.location.origin;',
+              'window.PLUTUS_SUPABASE_URL = window.PLUTUS_SUPABASE_URL || "";':
+                  'window.PLUTUS_SUPABASE_URL = window.PLUTUS_SUPABASE_URL || ' + repr(os.environ.get("PLUTUS_SUPABASE_URL", "")) + ';',
+              'window.PLUTUS_SUPABASE_PUBLISHABLE_KEY = window.PLUTUS_SUPABASE_PUBLISHABLE_KEY || "";':
+                  'window.PLUTUS_SUPABASE_PUBLISHABLE_KEY = window.PLUTUS_SUPABASE_PUBLISHABLE_KEY || ' + repr(os.environ.get("PLUTUS_SUPABASE_PUBLISHABLE_KEY", "")) + ';',
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Build installable debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Build unsigned release packages
+        if: ${{ github.event_name != 'push' && inputs.build_release == true }}
+        working-directory: android
+        run: ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/debug/app-debug.apk artifacts/PLUTUS-debug.apk
+          if [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk artifacts/PLUTUS-release-unsigned.apk
+          fi
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
+            cp android/app/build/outputs/bundle/release/app-release.aab artifacts/PLUTUS-release-unsigned.aab
+          fi
+          sha256sum artifacts/* | tee artifacts/SHA256SUMS.txt
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plutus-android-${{ github.sha }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
