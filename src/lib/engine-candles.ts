@@ -15,20 +15,20 @@ export function parseRiskBars(
     return { bars: [], basis: "UNKNOWN" };
   }
   const data = payload as Record<string, unknown>;
-  const rawBasis = String(data.priceBasis ?? "").toUpperCase();
+  const rawBasis = String(data["priceBasis"] ?? "").toUpperCase();
   const basis: CandleBasis =
     rawBasis === "BID" || rawBasis === "ASK" || rawBasis === "MID"
       ? rawBasis
       : "MID";
-  const rawBars = Array.isArray(data.bars) ? data.bars : [];
+  const rawBars = Array.isArray(data["bars"]) ? data["bars"] : [];
   const bars = rawBars
     .flatMap((raw): RiskBar[] => {
       if (!raw || typeof raw !== "object") return [];
       const row = raw as Record<string, unknown>;
-      const timestamp = Date.parse(String(row.openTime ?? ""));
-      const high = Number(row.high);
-      const low = Number(row.low);
-      const isOpen = row.isOpen === true;
+      const timestamp = Date.parse(String(row["openTime"] ?? ""));
+      const high = Number(row["high"]);
+      const low = Number(row["low"]);
+      const isOpen = row["isOpen"] === true;
       if (
         !Number.isFinite(timestamp) ||
         !Number.isFinite(high) ||
