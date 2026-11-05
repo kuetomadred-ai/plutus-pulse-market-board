@@ -310,7 +310,10 @@ export type Database = {
           lots: number
           opened_at: string
           order_id: string | null
+          protection_changed_at: string | null
           realized_pnl: number | null
+          risk_checked_at: string | null
+          risk_issue: Json | null
           side: string
           status: string
           stop_loss: number | null
@@ -328,7 +331,10 @@ export type Database = {
           lots: number
           opened_at?: string
           order_id?: string | null
+          protection_changed_at?: string | null
           realized_pnl?: number | null
+          risk_checked_at?: string | null
+          risk_issue?: Json | null
           side: string
           status?: string
           stop_loss?: number | null
@@ -346,7 +352,10 @@ export type Database = {
           lots?: number
           opened_at?: string
           order_id?: string | null
+          protection_changed_at?: string | null
           realized_pnl?: number | null
+          risk_checked_at?: string | null
+          risk_issue?: Json | null
           side?: string
           status?: string
           stop_loss?: number | null
@@ -646,7 +655,10 @@ export type Database = {
           lots: number
           opened_at: string
           order_id: string | null
+          protection_changed_at: string | null
           realized_pnl: number | null
+          risk_checked_at: string | null
+          risk_issue: Json | null
           side: string
           status: string
           stop_loss: number | null
@@ -684,6 +696,15 @@ export type Database = {
           p_symbol: string
         }
         Returns: number
+      }
+      pf_engine_reconcile_candles: {
+        Args: {
+          p_bars: Json
+          p_basis?: string
+          p_symbol: string
+          p_user_id?: string
+        }
+        Returns: Json
       }
     }
     Enums: {
