@@ -593,6 +593,10 @@ export type Database = {
         Returns: string
       }
       pf_engine_evaluate_all: { Args: never; Returns: number }
+      pf_engine_evaluate_paper: {
+        Args: { p_account_id: string }
+        Returns: string
+      }
       pf_engine_modify_order: {
         Args: {
           p_order_id: string

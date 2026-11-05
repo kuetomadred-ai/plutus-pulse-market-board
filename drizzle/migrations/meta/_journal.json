@@ -15,6 +15,13 @@
       "when": 1792650778058,
       "tag": "0001_profiles_and_engine_tick_risk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793881876864,
+      "tag": "0002_demo_loss_limit_reset",
+      "breakpoints": true
     }
   ]
 }
