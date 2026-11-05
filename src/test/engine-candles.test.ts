@@ -11,7 +11,7 @@ describe("engine candle parsing", () => {
     }, Date.parse("2026-10-31T10:03:00Z"));
     expect(result.basis).toBe("MID");
     expect(result.bars).toHaveLength(1);
-    expect(result.bars[0].high).toBe(2001);
+    expect(result.bars[0]?.high).toBe(2001);
   });
 
   it("rejects malformed and future bars", () => {
